@@ -12,6 +12,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
+/* High-level overview:
+ * 
+ * Used data structures:
+ * - A bihash_16_8 (bounded-index extensible hash) - 16 byte key and 8 byte value.
+ * - A pool is used to save the state for each PLUS flow (fixed sized struct)
+ * - A timer wheel (2t_1w_2048sl = 2 timers per object, 1 wheel, 2048 slots)
+ *
+ * The key in the hash table consist of (XOR is used to match both directions):
+ *   "5 tuple":
+ *    - XOR of src and dst IP
+ *    - XOR of src and dst port
+ *    - protocol
+ *   CAT
+ *
+ * The value corresponding to a key (in the hash table) is the pool index
+ * for the state of the matching PLUS flow.
+ *
+ * Besides the actual "state" of the flow we also save e.g. counters, RTT
+ * estimates, ...
+ *
+ * The timer wheel is used to implement the various timeout values in the
+ * PLUS state machine. If a flow times out, all the state is deleted.
+ * The timer wheel advances every time the main loop (in node.c) is executed.
+ * Therefore, if we only observe a few PLUS packets, it can happen that some
+ * flows are still displayed as "active", even though they are already timed out.
+ * They will be deleted as soon as the main loop is executed again.
+ *
+ * Currently, only one extended header is detected - a hop count of PLUS-aware MBs.
+ * PCF type = 1, PCF len = 1, PCF II = 0 (not protected), PCF Value = hop count
+ * The implementation will increase the PCF value by one.
+ */
+
 #ifndef __included_plus_h__
 #define __included_plus_h__
 
@@ -132,10 +166,12 @@ extern vlib_node_registration_t plus_node;
 
 u64 get_state(plus_key_t * kv_in);
 void update_state(plus_key_t * kv_in, uword new_state);
-void make_key(plus_key_t * kv, ip4_address_t * src_ip, ip4_address_t * dst_ip, u16 src_p, u16 dst_p, u8 protocol, u64 cat);
+void make_key(plus_key_t * kv, ip4_address_t * src_ip, ip4_address_t * dst_ip,
+                u16 src_p, u16 dst_p, u8 protocol, u64 cat);
 plus_session_t * get_session_from_key(plus_key_t * kv_in);
 u32 create_session(u64 cat);
-void update_rtt_estimate(plus_session_t * session, f64 now, u32 src_address, u32 psn, u32 pse);
+void update_rtt_estimate(plus_session_t * session, f64 now, u32 src_address,
+                u32 psn, u32 pse);
 void clean_session(u32 index);
 
 /**
@@ -152,7 +188,8 @@ always_inline plus_session_t * get_plus_session(u32 index)
  * @brief start a timer in the timer wheel
  */
 always_inline void start_timer(plus_session_t * session, u64 interval) {
-  session->timer = tw_timer_start_2t_1w_2048sl (&plus_main.tw, session->index, 0, interval);
+  session->timer = tw_timer_start_2t_1w_2048sl (&plus_main.tw,
+                  session->index, 0, interval);
 }
 
 /**
@@ -162,7 +199,8 @@ always_inline void update_timer(plus_session_t * session, u64 interval) {
   if(session->timer != ~0) {
     tw_timer_stop_2t_1w_2048sl (&plus_main.tw, session->timer);
   }
-  session->timer = tw_timer_start_2t_1w_2048sl (&plus_main.tw, session->index, 0, interval);
+  session->timer = tw_timer_start_2t_1w_2048sl (&plus_main.tw,
+                  session->index, 0, interval);
 }
 
 /**

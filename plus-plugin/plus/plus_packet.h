@@ -13,13 +13,13 @@ typedef struct _plus_header
 } __attribute__ ((packed)) plus_header_t;
 
 /**
- * @brief Extended PLUS HELLO header.
+ * @brief Extended PLUS hop count header.
  */
-typedef struct _plus_ext_hello_h {
+typedef struct _plus_ext_hop_c_h {
   u8 PCF_type;
   u8 PCF_len_and_II;
-  u8 PCF_hello;
-} __attribute__ ((packed)) plus_ext_hello_h_t;
+  u8 PCF_hop_c;
+} __attribute__ ((packed)) plus_ext_hop_c_h_t;
 
 /* PLUS header (with optional part (PCF Type, ...)
  *

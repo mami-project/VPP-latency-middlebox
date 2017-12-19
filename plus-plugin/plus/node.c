@@ -49,10 +49,13 @@ static u8 * format_plus_trace (u8 * s, va_list * args)
   
   /* Show PLUS packet */
   s = format (s, "PLUS packet: CAT: %lu, PSN: %u, PSE: %u\n", t->cat, t->psn, t->pse);
-  const char * stateNames[] = {"ZERO", "UNIFLOW", "ASSOCIATING", "ASSOCIATED", "STOPWAIT", "STOPPING", "ERROR"};
-  s = format (s, "  Current state: %s, stop bit: %u, extended bit: %u\n", stateNames[t->state], t->stop ? 1 : 0, t->extended ? 1 : 0);
+  const char * stateNames[] = {"ZERO", "UNIFLOW", "ASSOCIATING", "ASSOCIATED",
+                               "STOPWAIT", "STOPPING", "ERROR"};
+  s = format (s, "  Current state: %s, stop bit: %u, extended bit: %u\n",
+                  stateNames[t->state], t->stop ? 1 : 0, t->extended ? 1 : 0);
   if (t->pcf_type)
-  s = format (s, "  PCF type: %u, PCF len: %u, PCF II: %u, PCF hello value: %u", t->pcf_type, t->pcf_len, t->pcf_ii, t->pcf_value);
+  s = format (s, "  PCF type: %u, PCF len: %u, PCF II: %u, PCF hop count value: %u",
+                  t->pcf_type, t->pcf_len, t->pcf_ii, t->pcf_value);
   return s;
 }
 
@@ -155,7 +158,8 @@ plus_node_fn (vlib_main_t * vm,
         if (PREDICT_TRUE((plus0->magic_and_flags & MAGIC_MASK) == MAGIC)) {  
           /* Stores the corresponding key */
           plus_key_t kv;
-          make_key(&kv, &ip0->src_address, &ip0->dst_address, udp0->src_port, udp0->dst_port, ip0->protocol , plus0->CAT);
+          make_key(&kv, &ip0->src_address, &ip0->dst_address, udp0->src_port,
+                          udp0->dst_port, ip0->protocol , plus0->CAT);
             
           /* Try to get a session for the key */
           plus_session_t * session = get_session_from_key(&kv);
@@ -234,7 +238,8 @@ plus_node_fn (vlib_main_t * vm,
               update_timer(session, TO_ASSOCIATED);
 
               /* Stop bit in other direction and matching PSE value */
-              if (plus0->magic_and_flags & STOP && session->src_ip_dir != src_ip && session->psn_stopwait == pse) {
+              if (plus0->magic_and_flags & STOP && session->src_ip_dir != src_ip
+                  && session->psn_stopwait == pse) {
                 /* Timer is not reset */
                 update_timer(session, TO_STOP);
                 session->state = PLUS_STATE_STOPPING;
@@ -249,19 +254,21 @@ plus_node_fn (vlib_main_t * vm,
           }
             
           /* Handle extended header */
-          plus_ext_hello_h_t *plus_ext_hello0;
-          bool ext_hello = false;
+          plus_ext_hop_c_h_t *plus_ext_hop_c0;
+          bool ext_hop_c = false;
 
           /* Enough space for extended header */
-          if ((plus0->magic_and_flags & EXTENDED) && b0->current_length >= SIZE_PLUS + SIZE_PLUS_EXT_HELLO) {
+          if ((plus0->magic_and_flags & EXTENDED) && b0->current_length
+               >= SIZE_PLUS + SIZE_PLUS_EXT_HELLO) {
             vlib_buffer_advance (b0, SIZE_PLUS);
             total_advance += SIZE_PLUS;
-            plus_ext_hello0 = vlib_buffer_get_current(b0);
+            plus_ext_hop_c0 = vlib_buffer_get_current(b0);
           
-            /* "Hello" header */
-            if (plus_ext_hello0->PCF_type == 1) {
-              plus_ext_hello0->PCF_hello += 1;
-              ext_hello = true;
+            u8 ii = plus_ext_hop_c0->PCF_len_and_II & 0x03;
+            /* "Hop count" header */
+            if (plus_ext_hop_c0->PCF_type == 1 && ii == 0) {
+              plus_ext_hop_c0->PCF_hop_c += 1;
+              ext_hop_c = true;
             }
           }
 
@@ -276,11 +283,11 @@ plus_node_fn (vlib_main_t * vm,
             t->stop = plus0->magic_and_flags & STOP;
             t->extended = plus0->magic_and_flags & EXTENDED;
             t->state = session->state;
-            if (ext_hello) {
-              t->pcf_type = plus_ext_hello0->PCF_type; 
-              t->pcf_len = (plus_ext_hello0->PCF_len_and_II & 0xFC) >> 2;
-              t->pcf_ii = plus_ext_hello0->PCF_len_and_II & 0x03;
-              t->pcf_value = plus_ext_hello0->PCF_hello;
+            if (ext_hop_c) {
+              t->pcf_type = plus_ext_hop_c0->PCF_type; 
+              t->pcf_len = (plus_ext_hop_c0->PCF_len_and_II & 0xFC) >> 2;
+              t->pcf_ii = plus_ext_hop_c0->PCF_len_and_II & 0x03;
+              t->pcf_value = plus_ext_hop_c0->PCF_hop_c;
             } else {
               t->pcf_type = 0;
             }

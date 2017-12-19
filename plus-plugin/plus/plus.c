@@ -141,21 +141,26 @@ plus_enable_disable_command_fn (vlib_main_t * vm,
  */
 u8 * format_sessions(u8 *s, va_list *args) {
   plus_main_t * pm = &plus_main;
-  const char * stateNames[] = {"ZERO", "UNIFLOW", "ASSOCIATING", "ASSOCIATED", "STOPWAIT", "STOPPING", "ERROR"};
-  s = format(s, "Total flows: %u, total active flows: %u\n", pm->total_flows, pm->active_flows);
+  const char * stateNames[] = {"ZERO", "UNIFLOW", "ASSOCIATING", "ASSOCIATED",
+                               "STOPWAIT", "STOPPING", "ERROR"};
+  s = format(s, "Total flows: %u, total active flows: %u\n",
+                  pm->total_flows, pm->active_flows);
   plus_session_t * session;
   s = format(s, "=======================================================\n");
   /* Iterate through all pool entries */
   pool_foreach (session, pm->session_pool, ({
-    s = format(s, "Flow CAT: %lu, observed packets: %u\n", clib_net_to_host_u64(session->cat), session->pkt_count);
+    s = format(s, "Flow CAT: %lu, observed packets: %u\n",
+                    clib_net_to_host_u64(session->cat), session->pkt_count);
     f64 rtt_estimation = session->rtt_src + session->rtt_dst;
-    s = format(s, "Current state: %s, estimated RTT: %.*lfs\n", stateNames[session->state], rtt_estimation, 3);
+    s = format(s, "Current state: %s, estimated RTT: %.*lfs\n",
+                    stateNames[session->state], rtt_estimation, 3);
     s = format(s, "=======================================================\n");
   }));
   return s;
 }
 
-static clib_error_t * plus_show_stats_fn(vlib_main_t * vm, unformat_input_t * input, vlib_cli_command_t * cmd)
+static clib_error_t * plus_show_stats_fn(vlib_main_t * vm,
+                unformat_input_t * input, vlib_cli_command_t * cmd)
 {
   vl_print(vm, "%U", format_sessions);
   return 0;
@@ -233,7 +238,8 @@ setup_message_id_table (plus_main_t * pm, api_main_t *am)
 /**
  *  @brief create the hash key
  */
-void make_key(plus_key_t * kv, ip4_address_t * src_ip, ip4_address_t * dst_ip, u16 src_p, u16 dst_p, u8 protocol, u64 cat)
+void make_key(plus_key_t * kv, ip4_address_t * src_ip, ip4_address_t * dst_ip,
+                u16 src_p, u16 dst_p, u8 protocol, u64 cat)
 {
   kv->s_x_d_ip = src_ip->as_u32 ^ dst_ip->as_u32;
   kv->s_x_d_port = src_p ^ dst_p;
@@ -265,7 +271,8 @@ plus_session_t * get_session_from_key(plus_key_t * kv_in)
  * @brief update RTT estimations.
  * TODO: Currently, serial number overflow is not supported
  */
-void update_rtt_estimate(plus_session_t * session, f64 now, u32 src_address, u32 psn, u32 pse) {
+void update_rtt_estimate(plus_session_t * session, f64 now, u32 src_address,
+                u32 psn, u32 pse) {
   /* Decide direction */
   if (src_address == session->src) {
     /* Is a new packet */ 
@@ -325,8 +332,9 @@ void clean_session(u32 index)
   plus_main_t * pm = &plus_main;
   plus_session_t * session = get_plus_session(index);
   
-  /* If main loop (in node.c) is executed sparsely, it can happen that the timer wheel triggers multiple times for the same session. */
-  /* We remove/clean the session only the first time. */
+  /* If main loop (in node.c) is executed sparsely, it can happen that
+   * the timer wheel triggers multiple times for the same session.
+   * We remove/clean the session only the first time. */
   if (session == 0) {
     return;
   }
