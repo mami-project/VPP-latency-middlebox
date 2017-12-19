@@ -8,6 +8,8 @@ vagrant ssh
 ```
 To start Vagrant and connect via ssh (root access without password).
 
+Part of the Vagrant setup adapted from the [vpp-mb](https://github.com/mami-project/vpp-mb) project.
+
 ## Important VPP commands
 Start VPP: `sudo service vpp start`
 
@@ -42,11 +44,14 @@ Execute `ns_setup.sh` to generate virtual namespaces veth pairs (`sudo ./ns_setu
 
 Start VPP: `sudo service vpp start`
 
-Execute the file `vpp_interface.conf` to connect the virtual namespaces to VPP: `sudo vppctl exec /home/vagrant/plus-mb/scripts/vpp_interface.conf`
+Execute the file `vpp_interface.conf` to connect the virtual namespaces to VPP:
+
+`sudo vppctl exec /home/vagrant/plus-mb/scripts/vpp_interface.conf`
 
 (Use `sudo vppctl sh int` to confirm that the new interfaces are visible: *host-vpp1* and *host-vpp2*)
 
 Add the two interfaces to the PLUS plugin, such that it analyzes traffic coming from these interfaces:
+
 `sudo vppctl plus host-vpp1` and `sudo vppctl plus host-vpp2`
 
 Use the (very basic) Python scripts to generate PLUS traffic. The sender and receiver are each executed in a separate namespace (connected via VPP).
