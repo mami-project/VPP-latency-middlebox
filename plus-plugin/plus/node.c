@@ -110,28 +110,29 @@ plus_node_fn (vlib_main_t * vm,
   
   while (n_left_from > 0) {
 
-    /* Advance timer wheel */
-    expire_timers(vlib_time_now (vm));
     u32 n_left_to_next;
 
     vlib_get_next_frame (vm, node, next_index,
 		to_next, n_left_to_next);
 
     /* Single loop */
-    while (n_left_from > 0 && n_left_to_next > 0) {
+    while (n_left_from > 0 && n_left_to_next > 0) {    
+      /* Advance timer wheel */
+      expire_timers(vlib_time_now (vm));
+          
       u32 bi0;
-	    vlib_buffer_t * b0;
+      vlib_buffer_t * b0;
       u32 next0 = 0;
 
       /* speculatively enqueue b0 to the current next frame */
-	    bi0 = from[0];
-	    to_next[0] = bi0;
-	    from += 1;
-	    to_next += 1;
-	    n_left_from -= 1;
-	    n_left_to_next -= 1;
+      bi0 = from[0];
+      to_next[0] = bi0;
+      from += 1;
+      to_next += 1;
+      n_left_from -= 1;
+      n_left_to_next -= 1;
 
-	    b0 = vlib_get_buffer (vm, bi0);
+      b0 = vlib_get_buffer (vm, bi0);
     
       /* Keeps track of all the buffer movement */
       u8 total_advance = 0;
@@ -180,6 +181,8 @@ plus_node_fn (vlib_main_t * vm,
             session->src = ip0->src_address.as_u32;
             update_state(&kv, session->index);
             session->pkt_count = 0;
+            session->time_src = 0;
+            session->time_dst = 0;
           }
 
           /* Keep track of packets for each flow */
@@ -193,7 +196,7 @@ plus_node_fn (vlib_main_t * vm,
           update_rtt_estimate(session, vlib_time_now (vm), src_ip, psn, pse); 
 
           /* State update 
-           * TODO: Should delayed/reordered packets be able to influence the state?
+           * Delayed/reordered packets do currently reset the timers.
            * */
           switch ((plus_state_t) session->state) {  
             case PLUS_STATE_ZERO:
@@ -218,7 +221,8 @@ plus_node_fn (vlib_main_t * vm,
               update_timer(session, TO_IDLE);
               
               /* Confirmation */
-              if (session->src_ip_dir == src_ip && pse >= session->psn_associating) {
+              if (session->src_ip_dir == src_ip && comes_after_u32(
+                                      pse, session->psn_associating)) {
                 session->state = PLUS_STATE_ASSOCIATED;
               }
               break;

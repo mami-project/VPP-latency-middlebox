@@ -70,7 +70,5 @@ Use `sudo vppctl plus stat` to see the generated flow or use the packet trace co
 * Support for IP headers with options
 * IPv6 support
 
-## Known problems (fixed very soon)
-* PSN/PSE overflow is not fully supported
+## Known limitations
 * Currently only support for 2048 concurrent flows (should be more than enough for initial tests)
-* Sometimes the RTT estimation is not correct

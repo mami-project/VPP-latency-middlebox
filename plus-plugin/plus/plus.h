@@ -95,6 +95,10 @@ typedef enum {
   #define EXTENDED 0x00000001
 #endif
 
+/* Max values for advancement checks  */
+#define MAX_PSN 4294967296
+#define MAX_SKIP 100
+
 /* State for each observed PLUS session */
 typedef struct
 {
@@ -210,6 +214,19 @@ always_inline void expire_timers(f64 now) {
   tw_timer_expire_timers_2t_1w_2048sl (&plus_main.tw, now);
 }
 
-#define PLUS_PLUGIN_BUILD_VER "0.1"
+/**
+ * @brief check if a sequence number comes logically after another one.
+ * Supports sequence number overflow.
+ * Distance must be smaller than MAX_SKIP.
+ */
+always_inline bool comes_after_u32(u32 now, u32 old) {
+  i64 ret = (now - old) % MAX_PSN;
+  if (ret < 0) {
+    ret += MAX_PSN;
+  }
+  return ret < MAX_SKIP;
+}
+
+#define PLUS_PLUGIN_BUILD_VER "0.2"
 
 #endif /* __included_plus_h__ */

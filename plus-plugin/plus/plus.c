@@ -153,7 +153,7 @@ u8 * format_sessions(u8 *s, va_list *args) {
                     clib_net_to_host_u64(session->cat), session->pkt_count);
     f64 rtt_estimation = session->rtt_src + session->rtt_dst;
     s = format(s, "Current state: %s, estimated RTT: %.*lfs\n",
-                    stateNames[session->state], rtt_estimation, 3);
+                    stateNames[session->state], rtt_estimation, 9);
     s = format(s, "=======================================================\n");
   }));
   return s;
@@ -269,25 +269,29 @@ plus_session_t * get_session_from_key(plus_key_t * kv_in)
 
 /**
  * @brief update RTT estimations.
- * TODO: Currently, serial number overflow is not supported
+ * TODO: Simplify using arrays
  */
 void update_rtt_estimate(plus_session_t * session, f64 now, u32 src_address,
                 u32 psn, u32 pse) {
   /* Decide direction */
   if (src_address == session->src) {
-    /* Is a new packet */ 
-    if (psn > session->psn_src) {
+    /* Is the RTT estimation for the last packet completed?  */ 
+    if (session->time_src == 0) {
       session->psn_src = psn;
       session->time_src = now;
-      if (pse >= session->psn_dst) {
-        session->rtt_src = session->time_src - session->time_dst;
-      }
     }
-  } else if (psn > session->psn_dst) {
-    session->psn_dst = psn;
-    session->time_dst = now;
-    if (pse >= session->psn_src) {
-      session->rtt_dst = session->time_dst - session->time_src;
+    if (comes_after_u32(pse, session->psn_dst)) {
+      session->rtt_src = now - session->time_dst;
+      session->time_dst = 0;
+    }
+  } else {
+    if (session->time_dst == 0) {
+      session->psn_dst = psn;
+      session->time_dst = now;
+    }
+    if (comes_after_u32(pse, session->psn_src)) {
+      session->rtt_dst = now - session->time_src;
+      session->time_src = 0;
     }
   }
 }
