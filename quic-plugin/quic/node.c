@@ -83,7 +83,7 @@ static char * quic_error_strings[] = {
 #define SIZE_UDP 8
 
 /* 8 bit type, 8 bit packet number, 8 bit measurement byte*/
-#define SIZE_QUIC_MIN 24
+#define SIZE_QUIC_MIN 3
 
 #define IS_LONG 0x80
 #define HAS_ID 0x40
