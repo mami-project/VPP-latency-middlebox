@@ -40,7 +40,7 @@ List all active PLUS flows: `sudo vppctl plus stat`
 ## Simple example
 Go to the *scripts* directory and make `ns_setup.sh` executable (`chmod +x ns_setup.sh`)
 
-Execute `ns_setup.sh` to generate virtual namespaces veth pairs (`sudo ./ns_setup.sh`)
+Execute `ns_setup.sh` to generate virtual namespace veth pairs (`sudo ./ns_setup.sh`)
 
 Start VPP: `sudo service vpp start`
 
@@ -90,6 +90,8 @@ sudo make
 sudo make install
 ```
 
+Restart VPP.
+
 ## QUIC specific commands
 Add an interface to the QUIC plugin: `sudo vppctl quic <interface>`
 
@@ -100,7 +102,7 @@ List all active QUIC flows: `sudo vppctl quic stat`
 ## Simple example
 Go to the *scripts* directory and make `ns_setup.sh` executable (`chmod +x ns_setup.sh`)
 
-Execute `ns_setup.sh` to generate virtual namespaces veth pairs (`sudo ./ns_setup.sh`)
+Execute `ns_setup.sh` to generate virtual namespace veth pairs (`sudo ./ns_setup.sh`)
 
 Start VPP: `sudo service vpp start`
 
