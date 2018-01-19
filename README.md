@@ -72,3 +72,58 @@ Use `sudo vppctl plus stat` to see the generated flow or use the packet trace co
 
 ## Known limitations
 * Currently only support for 2048 concurrent flows (should be more than enough for initial tests)
+
+# QUIC VPP plugin
+## Installation
+See above. The new files are in the directory quic-plugin. There is also a pcap test file in the pcap directory.
+
+## Compile the plugin
+During the Vagrant provision, the plugins are automatically compiled and added to VPP.
+
+To compile new changes:
+
+```
+cd quic-plugin
+sudo autoreconf -fis
+sudo ./configure
+sudo make
+sudo make install
+```
+
+## QUIC specific commands
+Add an interface to the QUIC plugin: `sudo vppctl quic <interface>`
+
+Remove an interface: `sudo vppctl quic <interface> disable`
+
+List all active QUIC flows: `sudo vppctl quic stat`
+
+## Simple example
+Go to the *scripts* directory and make `ns_setup.sh` executable (`chmod +x ns_setup.sh`)
+
+Execute `ns_setup.sh` to generate virtual namespaces veth pairs (`sudo ./ns_setup.sh`)
+
+Start VPP: `sudo service vpp start`
+
+Execute the file `vpp_interface.conf` to connect the virtual namespaces to VPP:
+
+`sudo vppctl exec /home/vagrant/plus-mb/scripts/vpp_interface.conf`
+
+Add one interface to the QUIC plugin, such that it analyzes traffic coming from this interface:
+
+`sudo vppctl quic host-vpp1`
+
+(Track all 250 packets: `sudo vppctl trace add af-packet-input 250`)
+
+Replay a pcap file with 250 QUIC packets:
+
+`sudo ip netns exec vpp1 tcpreplay --intf1=veth_vpp1 /home/vagrant/plus-mb/pcap/delay-10-ms-first-250-pkt.pcap`
+
+(Save the collected trace in a file: `sudo vppctl sh trace max 250 > /home/vagrant/trace.txt`)
+
+(Look at the current QUIC stats: `sudo vppctl quic stat`)
+
+Stop VPP: `sudo service vpp stop`
+
+The QUIC plugin writes RTT estimations to the stdout. To view them, look at the corresponding log:
+
+`sudo journalctl -u vpp`
