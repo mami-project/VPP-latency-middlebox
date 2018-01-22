@@ -43,6 +43,14 @@
 #ifndef __included_quic_h__
 #define __included_quic_h__
 
+/* Select which observers to run */
+#define QUIC_BASIC_SPINBIT_OBSERVER
+#define QUIC_PN_SPINBIT_OBSERVER
+#define QUIC_PN_VALID_SPINBIT_OBSERVER
+#define QUIC_TWO_BIT_SPIN_OBSERVER
+
+
+
 #include <vnet/vnet.h>
 #include <vnet/ip/ip.h>
 #include <vnet/ethernet/ethernet.h>
@@ -86,6 +94,47 @@ typedef enum {
 /* Not used at the moment */
 #define MOVE_TWO_BIT_SPIN 6
 
+typedef struct {
+  bool spin_client;
+  bool spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+} basic_spin_observer_t;
+
+typedef struct {
+  bool spin_client;
+  bool spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+  u32 pn_client;
+  u32 pn_server;
+} pn_spin_observer_t;
+
+typedef struct {
+  bool spin_client;
+  bool spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+  u32 pn_client;
+  u32 pn_server;
+} pn_valid_spin_observer_t;
+
+typedef struct {
+  u8 spin_client;
+  u8 spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+} two_bit_spin_observer_t;
+
+
 /* State for each observed QUIC session */
 typedef struct
 {
@@ -97,13 +146,13 @@ typedef struct
   u64 key;
   u32 src;
   u64 id;
-  /* For RTT estimations */
-  bool spin_client;
-  bool spin_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
+
+  /* Data structures for the various spin bit observers */
+  basic_spin_observer_t basic_spinbit_observer;
+  pn_spin_observer_t pn_spin_observer;
+  pn_valid_spin_observer_t pn_valid_spin_observer;
+  two_bit_spin_observer_t two_bit_spin_observer;
+
   /* Number of observed packets */
   u32 pkt_count;
 } quic_session_t;

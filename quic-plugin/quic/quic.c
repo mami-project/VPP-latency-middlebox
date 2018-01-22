@@ -153,8 +153,8 @@ u8 * format_sessions(u8 *s, va_list *args) {
     s = format(s, "Flow id: %lu, observed packets: %u\n",
                     session->id, session->pkt_count);
     s = format(s, "Current state: %s, estimated RTT (client, server): %.*lfs %.*lfs\n",
-                    stateNames[session->state], session->rtt_client, 9,
-                    session->rtt_server, 9);
+                    stateNames[session->state], session->basic_spinbit_observer.rtt_client, 9,
+                    session->basic_spinbit_observer.rtt_server, 9);
     s = format(s, "=======================================================\n");
   }));
   return s;
@@ -272,30 +272,59 @@ quic_session_t * get_session_from_key(quic_key_t * kv_in)
  */
 void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 measurement, u32 packet_number) {
-  /* TODO: implement blocking bit */
-  /* TODO: implement logic for 2-bit spin */
-  /* TODO: add support for PN observer */
-  if (measurement & VALID_BIT) {
-    bool spin = measurement & ONE_BIT_SPIN;
-    if (src_port == QUIC_PORT) { 
-      if (session->spin_server != spin) {
-        session->spin_server = spin;
-        session->rtt_server = now - session->time_last_spin_server;
-        session->time_last_spin_server = now;
-        vlib_cli_output(vm, "[%.*lf] RTT server: %.*lf, spin -> %u, packet number: %u\n",
-                        now, 9, session->rtt_server, 9, spin ? 1 : 0, packet_number);
-      }
-    } else {
-      if (session->spin_client != spin) {
-        session->spin_client = spin;
-        session->rtt_client = now - session->time_last_spin_client;
-        session->time_last_spin_client = now;
-        vlib_cli_output(vm, "[%.*lf] RTT client: %.*lf, spin -> %u, packet number: %u\n",
-                        now, 9, session->rtt_client, 9, spin ? 1 : 0, packet_number);
-      }
+
+  /*
+  * FIRST we run the basic observer
+  */
+
+  basic_spin_observer_t *basic_observer = &(session->basic_spinbit_observer);
+
+  bool spin = measurement & ONE_BIT_SPIN;
+
+  /* if this is a packet from the server */
+  if (src_port == QUIC_PORT) {
+    if (basic_observer->spin_server != spin){
+      basic_observer->spin_server = spin;
+      basic_observer->rtt_server = now - basic_observer->time_last_spin_server;
+      vlib_cli_output(vm, "[%.*lf] RTT server: %.*lf, spin -> %u, packet number: %u\n",
+                        now, 9, basic_observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+    }
+  /* if this is a packet from the client */
+  } else {
+    if (basic_observer->spin_client != spin){
+      basic_observer->spin_client = spin;
+      basic_observer->rtt_client = now - basic_observer->time_last_spin_client;
+      vlib_cli_output(vm, "[%.*lf] RTT client: %.*lf, spin -> %u, packet number: %u\n",
+                        now, 9, basic_observer->rtt_client, 9, spin ? 1 : 0, packet_number);
     }
   }
 }
+
+  /* bellow here: old stuff */
+//   /* TODO: implement blocking bit */
+//   /* TODO: implement logic for 2-bit spin */
+//   /* TODO: add support for PN observer */
+//   if (measurement & VALID_BIT) {
+//     bool spin = measurement & ONE_BIT_SPIN;
+//     if (src_port == QUIC_PORT) {
+//       if (session->spin_server != spin) {
+//         session->spin_server = spin;
+//         session->rtt_server = now - session->time_last_spin_server;
+//         session->time_last_spin_server = now;
+//         vlib_cli_output(vm, "[%.*lf] RTT server: %.*lf, spin -> %u, packet number: %u\n",
+//                         now, 9, session->rtt_server, 9, spin ? 1 : 0, packet_number);
+//       }
+//     } else {
+//       if (session->spin_client != spin) {
+//         session->spin_client = spin;
+//         session->rtt_client = now - session->time_last_spin_client;
+//         session->time_last_spin_client = now;
+//         vlib_cli_output(vm, "[%.*lf] RTT client: %.*lf, spin -> %u, packet number: %u\n",
+//                         now, 9, session->rtt_client, 9, spin ? 1 : 0, packet_number);
+//       }
+//     }
+//   }
+// }
 
 /**
  * @brief update the state of the session with the given key

@@ -180,7 +180,7 @@ quic_node_fn (vlib_main_t * vm,
         vlib_buffer_advance (b0, SIZE_UDP);
         total_advance += SIZE_UDP;
 
-        /* QUIC "detection" */
+        /* QUIC "detection", see if either endpoint is on the QUIC_PORT */
         if (PREDICT_TRUE(clib_net_to_host_u16(udp0->src_port) == QUIC_PORT ||
                                 clib_net_to_host_u16(udp0->dst_port) == QUIC_PORT)) {
           /* Get QUIC header */
