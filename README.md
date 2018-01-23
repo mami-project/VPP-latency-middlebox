@@ -86,6 +86,8 @@ The go PLUS client should send a PLUS packet to the server and get a reply back.
 
 In the Vagrant vm you should see two observed PlUS packets using e.g. `sudo vppctl plus stat`
 
+**Important:** To add a packet trace, use `sudo vppctl trace add dpdk-input 50`.
+
 ## Simple example
 Go to the *scripts* directory and make `ns_setup.sh` executable (`chmod +x ns_setup.sh`)
 
