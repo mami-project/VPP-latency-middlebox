@@ -104,6 +104,7 @@ static char * quic_error_strings[] = {
 #define SIZE_NUMBER_32 4
 
 #define SIZE_ID 8
+#define SIZE_VERSION 4
 #define SIZE_QUIC_SPIN 1
 
 /* Timeout values (in 100ms) */
@@ -168,15 +169,14 @@ quic_node_fn (vlib_main_t * vm,
                               SIZE_ETHERNET + SIZE_IP4 + SIZE_UDP + SIZE_QUIC_MIN)) {
         vlib_buffer_advance (b0, SIZE_ETHERNET);
         total_advance += SIZE_ETHERNET;
-        /* Get IP4 header */
-        ip4_header_t *ip0 = vlib_buffer_get_current(b0);
 
+      /* Get IP4 header */
+        ip4_header_t *ip0 = vlib_buffer_get_current(b0);
         vlib_buffer_advance (b0, SIZE_IP4);
         total_advance += SIZE_IP4;
 
         /* Get UDP header */
         udp_header_t *udp0 = vlib_buffer_get_current(b0);
-
         vlib_buffer_advance (b0, SIZE_UDP);
         total_advance += SIZE_UDP;
 
@@ -184,66 +184,94 @@ quic_node_fn (vlib_main_t * vm,
         if (PREDICT_TRUE(clib_net_to_host_u16(udp0->src_port) == QUIC_PORT ||
                                 clib_net_to_host_u16(udp0->dst_port) == QUIC_PORT)) {
           /* Get QUIC header */
+
+          /* Could be problematic if id == 0. Is that even possible? */
+          u64 connection_id;
+          u32 packet_number, CLIB_UNUSED(quic_version);
           u8 *type = vlib_buffer_get_current(b0);
-          
-          /* TODO: also process long headers */
+
+          /* LONG HEADER */
+          /* We expect most packets to have the short header */
           if (PREDICT_FALSE(*type & IS_LONG)) {
-            goto skip_packet;
-          }
-          
-          vlib_buffer_advance (b0, SIZE_TYPE);
-          total_advance += SIZE_TYPE;
-          
-          /* Could be problematic if id == 0.
-          Is that even possible? */
-          u64 connection_id = 0;
-          /* Only true for current minq implementation (IETF draft 05)
-           * For newest IETF draft (08) HAS_ID meaning is reversed */
-          if (*type & HAS_ID && b0->current_length >= SIZE_ID) {
+            vlib_buffer_advance(b0, SIZE_TYPE);
+            total_advance += SIZE_TYPE;
+
+            /* Get connection ID */
             u64 *temp_id = vlib_buffer_get_current(b0);
             connection_id = clib_net_to_host_u64(*temp_id);
-
-            vlib_buffer_advance (b0, SIZE_ID);
+            vlib_buffer_advance(b0, SIZE_ID);
             total_advance += SIZE_ID;
-          }
 
-          u32 packet_number;
-          switch (*type & QUIC_TYPE) {
-            case P_NUMBER_8:
-              if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_8)) {
-                u8 *temp_8 = vlib_buffer_get_current(b0);
-                packet_number = *temp_8;
-                vlib_buffer_advance (b0, SIZE_NUMBER_8);
-                total_advance += SIZE_NUMBER_8;
-              } else {
+            /* Get version */
+            u32 *temp_version = vlib_buffer_get_current(b0);
+            quic_version = clib_net_to_host_u32(*temp_version);
+            vlib_buffer_advance(b0, SIZE_VERSION);
+            total_advance += SIZE_VERSION;
+
+            /* Get packet number PN */
+            u32* temp_pn = vlib_buffer_get_current(b0);
+            packet_number = clib_net_to_host_u32(*temp_pn);
+            vlib_buffer_advance(b0, SIZE_NUMBER_32);
+            total_advance += SIZE_NUMBER_32;
+
+          /* SHORT HEADER */
+          } else {
+            vlib_buffer_advance (b0, SIZE_TYPE);
+            total_advance += SIZE_TYPE;
+
+            /* No quic version in the short header */
+            quic_version = 0;
+
+            /* Get connection ID */
+            connection_id = 0;
+            /* Only true for current minq implementation (IETF draft 05)
+            * For newest IETF draft (08) HAS_ID meaning is reversed */
+            if (*type & HAS_ID && b0->current_length >= SIZE_ID) {
+              u64 *temp_id = vlib_buffer_get_current(b0);
+              connection_id = clib_net_to_host_u64(*temp_id);
+
+              vlib_buffer_advance (b0, SIZE_ID);
+              total_advance += SIZE_ID;
+            }
+
+            /* Get the packet number, grmblgrmblgrbml */
+            switch (*type & QUIC_TYPE) {
+              case P_NUMBER_8:
+                if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_8)) {
+                  u8 *temp_8 = vlib_buffer_get_current(b0);
+                  packet_number = *temp_8;
+                  vlib_buffer_advance (b0, SIZE_NUMBER_8);
+                  total_advance += SIZE_NUMBER_8;
+                } else {
+                  goto skip_packet;
+                }
+                break;
+
+              case P_NUMBER_16:
+                if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_16)) {
+                  u16 *temp_16 = vlib_buffer_get_current(b0);
+                  packet_number = clib_net_to_host_u16(*temp_16);
+                  vlib_buffer_advance (b0, SIZE_NUMBER_16);
+                  total_advance += SIZE_NUMBER_16;
+                } else {
+                  goto skip_packet;
+                }
+                break;
+
+              case P_NUMBER_32:
+                if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_32)) {
+                  u32 *temp_32 = vlib_buffer_get_current(b0);
+                  packet_number = clib_net_to_host_u32(*temp_32);
+                  vlib_buffer_advance (b0, SIZE_NUMBER_32);
+                  total_advance += SIZE_NUMBER_32;
+                } else {
+                  goto skip_packet;
+                }
+                break;
+
+              default:
                 goto skip_packet;
-              }
-              break;
-
-            case P_NUMBER_16:
-              if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_16)) {
-                u16 *temp_16 = vlib_buffer_get_current(b0);
-                packet_number = clib_net_to_host_u16(*temp_16);
-                vlib_buffer_advance (b0, SIZE_NUMBER_16);
-                total_advance += SIZE_NUMBER_16;
-              } else {
-                goto skip_packet;
-              }
-              break;
-
-            case P_NUMBER_32:
-              if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_32)) {
-                u32 *temp_32 = vlib_buffer_get_current(b0);
-                packet_number = clib_net_to_host_u32(*temp_32);
-                vlib_buffer_advance (b0, SIZE_NUMBER_32);
-                total_advance += SIZE_NUMBER_32;
-              } else {
-                goto skip_packet;
-              }
-              break;
-
-            default:
-              goto skip_packet;     
+            }
           }
 
           u8 measurement;
