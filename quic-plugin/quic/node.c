@@ -130,7 +130,7 @@ quic_node_fn (vlib_main_t * vm,
   from = vlib_frame_vector_args (frame);
   n_left_from = frame->n_vectors;
   next_index = node->cached_next_index;
-  
+
   while (n_left_from > 0) {
 
     u32 n_left_to_next;
@@ -260,7 +260,7 @@ quic_node_fn (vlib_main_t * vm,
             
           /* Try to get a session for the key */
           quic_session_t * session = get_session_from_key(&kv);
-            
+
           /* Only for the first packet of a flow we do not have a matching session */
           if (PREDICT_FALSE(!session)) {
             /* Create new session */  

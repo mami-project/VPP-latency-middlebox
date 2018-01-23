@@ -276,26 +276,138 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
   /*
   * FIRST we run the basic observer
   */
+  {
+    basic_spin_observer_t *observer = &(session->basic_spinbit_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
 
-  basic_spin_observer_t *basic_observer = &(session->basic_spinbit_observer);
-
-  bool spin = measurement & ONE_BIT_SPIN;
-
-  /* if this is a packet from the server */
-  if (src_port == QUIC_PORT) {
-    if (basic_observer->spin_server != spin){
-      basic_observer->spin_server = spin;
-      basic_observer->rtt_server = now - basic_observer->time_last_spin_server;
-      vlib_cli_output(vm, "[%.*lf] RTT server: %.*lf, spin -> %u, packet number: %u\n",
-                        now, 9, basic_observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      if (observer->spin_server != spin){
+        observer->spin_server = spin;
+        observer->rtt_server = now - observer->time_last_spin_server;
+        observer->time_last_spin_server = now;
+        vlib_cli_output(vm, "[TIME:] %.*lf [BASIC-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      if (observer->spin_client != spin){
+        observer->spin_client = spin;
+        observer->rtt_client = now - observer->time_last_spin_client;
+        observer->time_last_spin_client = now;
+        vlib_cli_output(vm, "[TIME:] %.*lf [BASIC-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+      }
     }
-  /* if this is a packet from the client */
-  } else {
-    if (basic_observer->spin_client != spin){
-      basic_observer->spin_client = spin;
-      basic_observer->rtt_client = now - basic_observer->time_last_spin_client;
-      vlib_cli_output(vm, "[%.*lf] RTT client: %.*lf, spin -> %u, packet number: %u\n",
-                        now, 9, basic_observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+  }
+
+ /*
+  * SECOND we run the packet number (PN) observer
+  */
+
+  //TODO this does not handle PN wrap arrounds yet
+  {
+    pn_spin_observer_t *observer = &(session->pn_spin_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      /* check if arrived in order and has different spin */
+      if (packet_number > observer->pn_server && observer->spin_server != spin) {
+        observer->spin_server = spin;
+        observer->pn_server = packet_number;
+        observer->rtt_server = now - observer->time_last_spin_server;
+        observer->time_last_spin_server = now;
+        vlib_cli_output(vm, "[TIME:] %.*lf [PN-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      /* check if arrived in order and has different spin */
+      if (packet_number > observer->pn_client && observer->spin_client != spin) {
+        observer->spin_client = spin;
+        observer->pn_client = packet_number;
+        observer->rtt_client = now - observer->time_last_spin_client;
+        observer->time_last_spin_client = now;
+        vlib_cli_output(vm, "[TIME:] %.*lf [PN-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+        }
+      }
+  }
+
+  /*
+  * THIRD we run the packet number (PN) observer with VALID bit
+  */
+
+  //TODO this does not handle PN wrap arrounds yet
+  {
+    pn_valid_spin_observer_t *observer = &(session->pn_valid_spin_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
+    bool valid = measurement & VALID_BIT;
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      /* check if arrived in order and has different spin */
+      if (packet_number > observer->pn_server && observer->spin_server != spin) {
+        observer->spin_server = spin;
+        observer->pn_server = packet_number;
+        observer->valid_server = valid;
+        observer->rtt_server = now - observer->time_last_spin_server;
+        observer->time_last_spin_server = now;
+        /* only report RTT if it was valid over the entire roundtrip */
+        if (observer->valid_server && observer->valid_client){
+          vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+        }
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      /* check if arrived in order and has different spin */
+      if (packet_number > observer->pn_client && observer->spin_client != spin) {
+        observer->spin_client = spin;
+        observer->pn_client = packet_number;
+        observer->valid_client = valid;
+        observer->rtt_client = now - observer->time_last_spin_client;
+        observer->time_last_spin_client = now;
+        /* only report RTT if it was valid over the entire roundtrip */
+        if (observer->valid_server && observer->valid_client){
+          vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+        }
+      }
+    }
+  }
+
+  /*
+  * FOURTH we run the dual spin bit observer
+  */
+
+  //TODO this does not handle PN wrap arrounds yet
+  {
+    two_bit_spin_observer_t *observer = &(session->two_bit_spin_observer);
+    u8 spin = measurement >> TWO_BIT_SPIN_OFFSET;
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      /* check if arrived in order and has different spin */
+      if (spin == ((observer->spin_server + 1) % 4)) {
+        observer->spin_server = spin;
+        observer->rtt_server = now - observer->time_last_spin_server;
+        observer->time_last_spin_server = now;
+        /* only report RTT if it was valid over the entire roundtrip */
+        vlib_cli_output(vm, "[TIME:] %.*lf [TWO-BIT-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                        now, 9, observer->rtt_server, 9, spin, packet_number);
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      if (spin == ((observer->spin_client + 1) % 4)) {
+        observer->spin_client = spin;
+        observer->rtt_client = now - observer->time_last_spin_client;
+        observer->time_last_spin_client = now;
+        /* only report RTT if it was valid over the entire roundtrip */
+        vlib_cli_output(vm, "[TIME:] %.*lf [TWO-BIT-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                        now, 9, observer->rtt_client, 9, spin, packet_number);
+      }
     }
   }
 }

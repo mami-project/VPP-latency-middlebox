@@ -43,14 +43,6 @@
 #ifndef __included_quic_h__
 #define __included_quic_h__
 
-/* Select which observers to run */
-#define QUIC_BASIC_SPINBIT_OBSERVER
-#define QUIC_PN_SPINBIT_OBSERVER
-#define QUIC_PN_VALID_SPINBIT_OBSERVER
-#define QUIC_TWO_BIT_SPIN_OBSERVER
-
-
-
 #include <vnet/vnet.h>
 #include <vnet/ip/ip.h>
 #include <vnet/ethernet/ethernet.h>
@@ -91,8 +83,7 @@ typedef enum {
 #define ONE_BIT_SPIN 0x40
 #define VALID_BIT 0x20
 #define BLOCKING_BIT 0x10
-/* Not used at the moment */
-#define MOVE_TWO_BIT_SPIN 6
+#define TWO_BIT_SPIN_OFFSET 6
 
 typedef struct {
   bool spin_client;
@@ -117,6 +108,8 @@ typedef struct {
 typedef struct {
   bool spin_client;
   bool spin_server;
+  bool valid_client;
+  bool valid_server;
   f64 time_last_spin_client;
   f64 time_last_spin_server;
   f64 rtt_client;
@@ -125,7 +118,7 @@ typedef struct {
   u32 pn_server;
 } pn_valid_spin_observer_t;
 
-typedef struct {
+ typedef  struct {
   u8 spin_client;
   u8 spin_server;
   f64 time_last_spin_client;
