@@ -273,9 +273,10 @@ quic_session_t * get_session_from_key(quic_key_t * kv_in)
 void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 measurement, u32 packet_number) {
 
+#ifdef QUIC_BASIC_SPINBIT_OBSERVER
   /*
-  * FIRST we run the basic observer
-  */
+   * FIRST we run the basic observer
+   */
   {
     basic_spin_observer_t *observer = &(session->basic_spinbit_observer);
     bool spin = measurement & ONE_BIT_SPIN;
@@ -300,12 +301,13 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       }
     }
   }
+#endif /* QUIC_BASIC_SPINBIT_OBSERVER */
 
- /*
-  * SECOND we run the packet number (PN) observer
-  */
-
-  //TODO this does not handle PN wrap arrounds yet
+#ifdef QUIC_PN_SPINBIT_OBSERVER
+  /*
+   * SECOND we run the packet number (PN) observer
+   */
+//TODO this does not handle PN wrap arrounds yet
   {
     pn_spin_observer_t *observer = &(session->pn_spin_observer);
     bool spin = measurement & ONE_BIT_SPIN;
@@ -334,11 +336,13 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
         }
       }
   }
+#endif /* QUIC_PN_SPINBIT_OBSERVER */
 
+
+#ifdef QUIC_PN_VALID_SPINBIT_OBSERVER
   /*
-  * THIRD we run the packet number (PN) observer with VALID bit
-  */
-
+   * THIRD we run the packet number (PN) observer with VALID bit
+   */
   //TODO this does not handle PN wrap arrounds yet
   {
     pn_valid_spin_observer_t *observer = &(session->pn_valid_spin_observer);
@@ -377,10 +381,13 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       }
     }
   }
+#endif /* QUIC_PN_VALID_SPINBIT_OBSERVER */
 
+
+#ifdef QUIC_TWO_BIT_SPIN_OBSERVER
   /*
-  * FOURTH we run the dual spin bit observer
-  */
+   * FOURTH we run the dual spin bit observer
+   */
 
   //TODO this does not handle PN wrap arrounds yet
   {
@@ -410,6 +417,8 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       }
     }
   }
+#endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
+
 }
 
   /* bellow here: old stuff */

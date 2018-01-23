@@ -43,6 +43,13 @@
 #ifndef __included_quic_h__
 #define __included_quic_h__
 
+/* Select which observers to run */
+#define QUIC_BASIC_SPINBIT_OBSERVER
+#define QUIC_PN_SPINBIT_OBSERVER
+#define QUIC_PN_VALID_SPINBIT_OBSERVER
+#define QUIC_TWO_BIT_SPIN_OBSERVER
+
+
 #include <vnet/vnet.h>
 #include <vnet/ip/ip.h>
 #include <vnet/ethernet/ethernet.h>
@@ -85,6 +92,7 @@ typedef enum {
 #define BLOCKING_BIT 0x10
 #define TWO_BIT_SPIN_OFFSET 6
 
+#ifdef QUIC_BASIC_SPINBIT_OBSERVER
 typedef struct {
   bool spin_client;
   bool spin_server;
@@ -93,7 +101,9 @@ typedef struct {
   f64 rtt_client;
   f64 rtt_server;
 } basic_spin_observer_t;
+#endif /* QUIC_BASIC_SPINBIT_OBSERVER */
 
+#ifdef QUIC_PN_SPINBIT_OBSERVER
 typedef struct {
   bool spin_client;
   bool spin_server;
@@ -104,7 +114,9 @@ typedef struct {
   u32 pn_client;
   u32 pn_server;
 } pn_spin_observer_t;
+#endif /* QUIC_PN_SPINBIT_OBSERVER */
 
+#ifdef QUIC_PN_VALID_SPINBIT_OBSERVER
 typedef struct {
   bool spin_client;
   bool spin_server;
@@ -117,7 +129,9 @@ typedef struct {
   u32 pn_client;
   u32 pn_server;
 } pn_valid_spin_observer_t;
+#endif /* QUIC_PN_VALID_SPINBIT_OBSERVER */
 
+#ifdef QUIC_TWO_BIT_SPIN_OBSERVER
  typedef  struct {
   u8 spin_client;
   u8 spin_server;
@@ -126,7 +140,7 @@ typedef struct {
   f64 rtt_client;
   f64 rtt_server;
 } two_bit_spin_observer_t;
-
+#endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
 
 /* State for each observed QUIC session */
 typedef struct
@@ -141,10 +155,21 @@ typedef struct
   u64 id;
 
   /* Data structures for the various spin bit observers */
+#ifdef QUIC_BASIC_SPINBIT_OBSERVER
   basic_spin_observer_t basic_spinbit_observer;
+#endif /* QUIC_BASIC_SPINBIT_OBSERVER */
+
+#ifdef QUIC_PN_SPINBIT_OBSERVER
   pn_spin_observer_t pn_spin_observer;
+#endif /* QUIC_PN_SPINBIT_OBSERVER */
+
+#ifdef QUIC_PN_VALID_SPINBIT_OBSERVER
   pn_valid_spin_observer_t pn_valid_spin_observer;
+#endif /* QUIC_PN_VALID_SPINBIT_OBSERVER */
+
+#ifdef QUIC_TWO_BIT_SPIN_OBSERVER
   two_bit_spin_observer_t two_bit_spin_observer;
+#endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
 
   /* Number of observed packets */
   u32 pkt_count;
