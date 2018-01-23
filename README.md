@@ -10,6 +10,24 @@ To start Vagrant and connect via ssh (root access without password).
 
 Part of the Vagrant setup adapted from the [vpp-mb](https://github.com/mami-project/vpp-mb) project.
 
+## Additional Vagrant commands
+Rsync the vpp-plus directory once more (e.g. useful after git pull):
+```
+cd vagrant
+vagrant halt
+rm .vagrant/machines/default/virtualbox/action_provision
+vagrant up
+vagrant ssh
+```
+Destroy the entire Vagrant VM and start over (important: you lose the entire VM and all custom files):
+```
+cd vagrant
+vagrant halt
+vagrant destroy
+vagrant up
+vagrant ssh
+```
+
 ## Important VPP commands
 Start VPP: `sudo service vpp start`
 
@@ -36,6 +54,38 @@ Add an interface to the PLUS plugin: `sudo vppctl plus <interface>`
 Remove an interface: `sudo vppctl plus <interface> disable`
 
 List all active PLUS flows: `sudo vppctl plus stat`
+
+## Connect Vagrant VM to host machine and run go plus-echo test
+This setup assumes you use VirtualBox as provider for the Vagrant VM!
+
+On your local machine in VirtualBox: Go to `Virtualbox --> Preferences...`. In the "Network tab" add *two* "Host-only Networks". Change the configuration:
+```
+Network 1: IPv4 Address: 192.168.100.1, IPv4 Network Mask: 255.255.255.0
+Network 2: IPv4 Address: 192.168.101.1, IPv4 Network Mask: 255.255.255.0
+```
+Now start the Vagrant VM and execute the following commands *inside the VM*:
+```
+sudo service vpp start
+sudo vppctl ex /home/vagrant/plus-mb/scripts/external_vpp_interface.conf   # Add IP addresses to the interfaces inside VPP
+sudo vppctl plus GigabitEthernet0/8/0                                      # Add the two interfaces to the plus plugin
+sudo vppctl plus GigabitEthernet0/9/0
+```
+VPP should now be ready. Back on the *local machine*:
+```
+sudo route add 192.168.100.1/32 gw 192.168.101.2    # Add static routes such that the go client and server know how to reach each other.
+sudo route add 192.168.101.1/32 gw 192.168.100.2
+# if not available, install golan-1.9: sudo apt-get install golang-1.9-go
+go get github.com/FMNSSun/plus-echo
+cd go/src/github.com/FMNSSun/plus-echo
+go build client.go
+go build server.go
+./server -local-addr=192.168.101.1:4000
+./client -local-addr=192.168.100.1:3000 -remote-addr=192.168.101.1:4000    # in a different terminal
+
+```
+The go PLUS client should send a PLUS packet to the server and get a reply back.
+
+In the Vagrant vm you should see two observed PlUS packets using e.g. `sudo vppctl plus stat`
 
 ## Simple example
 Go to the *scripts* directory and make `ns_setup.sh` executable (`chmod +x ns_setup.sh`)
