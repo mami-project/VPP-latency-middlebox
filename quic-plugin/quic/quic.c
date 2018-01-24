@@ -356,10 +356,10 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
         observer->spin_server = spin;
         observer->pn_server = packet_number;
         observer->valid_server = valid;
-        observer->rtt_server = now - observer->time_last_spin_server;
         observer->time_last_spin_server = now;
-        /* only report RTT if it was valid over the entire roundtrip */
+        /* only report and store RTT if it was valid over the entire roundtrip */
         if (observer->valid_server && observer->valid_client){
+          observer->rtt_server = now - observer->time_last_spin_server;
           vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
                           now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
         }
@@ -373,8 +373,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
         observer->valid_client = valid;
         observer->rtt_client = now - observer->time_last_spin_client;
         observer->time_last_spin_client = now;
-        /* only report RTT if it was valid over the entire roundtrip */
+        /* only report and store RTT if it was valid over the entire roundtrip */
         if (observer->valid_server && observer->valid_client){
+          observer->time_last_spin_client = now;
           vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
                           now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
         }
