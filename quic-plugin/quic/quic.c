@@ -422,32 +422,6 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
 }
 
-  /* bellow here: old stuff */
-//   /* TODO: implement blocking bit */
-//   /* TODO: implement logic for 2-bit spin */
-//   /* TODO: add support for PN observer */
-//   if (measurement & VALID_BIT) {
-//     bool spin = measurement & ONE_BIT_SPIN;
-//     if (src_port == QUIC_PORT) {
-//       if (session->spin_server != spin) {
-//         session->spin_server = spin;
-//         session->rtt_server = now - session->time_last_spin_server;
-//         session->time_last_spin_server = now;
-//         vlib_cli_output(vm, "[%.*lf] RTT server: %.*lf, spin -> %u, packet number: %u\n",
-//                         now, 9, session->rtt_server, 9, spin ? 1 : 0, packet_number);
-//       }
-//     } else {
-//       if (session->spin_client != spin) {
-//         session->spin_client = spin;
-//         session->rtt_client = now - session->time_last_spin_client;
-//         session->time_last_spin_client = now;
-//         vlib_cli_output(vm, "[%.*lf] RTT client: %.*lf, spin -> %u, packet number: %u\n",
-//                         now, 9, session->rtt_client, 9, spin ? 1 : 0, packet_number);
-//       }
-//     }
-//   }
-// }
-
 /**
  * @brief update the state of the session with the given key
  */
