@@ -420,6 +420,47 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
   }
 #endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
 
+#ifdef QUIC_STAT_HEUR_SPINBIT_OBSERVER
+  /*
+   * FIFTH we run the static heuristic observer
+   */
+  {
+    stat_heur_spin_observer_t *observer = &(session->stat_heur_spin_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      if (observer->spin_server != spin){
+        observer->spin_server = spin;
+        f64 rtt_candidate = now - observer->time_last_spin_server;
+        if (rtt_candidate > STAT_HEUR_THRESHOLD){
+          observer->rtt_server = rtt_candidate;
+          /* The assumption is that a packet has been held back long enough to arrive
+           * after the valid spin edge, therefor, we completely ignore this false spin edge
+           * and do not report the time at which we saw this packet */
+          observer->time_last_spin_server = now;
+          vlib_cli_output(vm, "[TIME:] %.*lf [STAT-HEUR-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+        }
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      if (observer->spin_client != spin){
+        observer->spin_client = spin;
+        f64 rtt_candidate = now - observer->time_last_spin_client;
+        if (rtt_candidate > STAT_HEUR_THRESHOLD){
+          /* see comment for packets from server */
+          observer->rtt_client = rtt_candidate;
+          observer->time_last_spin_client = now;
+          vlib_cli_output(vm, "[TIME:] %.*lf [STAT-HEUR-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+                          now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+        }
+      }
+    }
+  }
+#endif /* QUIC_STAT_HEUR_SPINBIT_OBSERVER */
+
+
 }
 
 /**

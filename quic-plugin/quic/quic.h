@@ -48,6 +48,7 @@
 #define QUIC_PN_SPINBIT_OBSERVER
 #define QUIC_PN_VALID_SPINBIT_OBSERVER
 #define QUIC_TWO_BIT_SPIN_OBSERVER
+#define QUIC_STAT_HEUR_SPINBIT_OBSERVER
 
 
 #include <vnet/vnet.h>
@@ -142,6 +143,20 @@ typedef struct {
 } two_bit_spin_observer_t;
 #endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
 
+#ifdef QUIC_STAT_HEUR_SPINBIT_OBSERVER
+#define STAT_HEUR_THRESHOLD 0.001
+typedef struct {
+  bool spin_client;
+  bool spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+} stat_heur_spin_observer_t;
+#endif /* QUIC_STAT_HEUR_SPINBIT_OBSERVER */
+
+
+
 /* State for each observed QUIC session */
 typedef struct
 {
@@ -170,6 +185,10 @@ typedef struct
 #ifdef QUIC_TWO_BIT_SPIN_OBSERVER
   two_bit_spin_observer_t two_bit_spin_observer;
 #endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
+
+#ifdef QUIC_STAT_HEUR_SPINBIT_OBSERVER
+  stat_heur_spin_observer_t stat_heur_spin_observer;
+#endif /* QUIC_STAT_HEUR_SPINBIT_OBSERVER */
 
   /* Number of observed packets */
   u32 pkt_count;
