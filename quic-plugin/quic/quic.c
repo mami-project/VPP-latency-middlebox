@@ -485,7 +485,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
         /* calculate the acceptance treshold */
         f64 acceptance_threshold = observer->rtt_server[0];
-        for(int i = 1; i < REL_HEUR_HISTORY_SIZE; i++){
+        for(int i = 1; i < DYNA_HEUR_HISTORY_SIZE; i++){
           if (observer->rtt_server[i] < acceptance_threshold){
             acceptance_threshold = observer->rtt_server[i];
           }
@@ -515,7 +515,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
         /* calculate the acceptance treshold */
         f64 acceptance_threshold = observer->rtt_client[0];
-        for(int i = 1; i < REL_HEUR_HISTORY_SIZE; i++){
+        for(int i = 1; i < DYNA_HEUR_HISTORY_SIZE; i++){
           if (observer->rtt_client[i] < acceptance_threshold){
             acceptance_threshold = observer->rtt_client[i];
           }
