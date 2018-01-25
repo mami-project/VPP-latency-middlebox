@@ -490,9 +490,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
             acceptance_threshold = observer->rtt_server[i];
           }
         }
-        acceptance_threshold *= REL_HEUR_THRESHOLD;
+        acceptance_threshold *= DYNA_HEUR_THRESHOLD;
 
-        if (rtt_candidate > acceptance_threshold || observer->rejected_server >= REL_HEUR_MAX_REJECT){
+        if (rtt_candidate > acceptance_threshold || observer->rejected_server >= DYNA_HEUR_MAX_REJECT){
           observer->rejected_server = 0;
           observer->rtt_server[++(observer->index_server)] = rtt_candidate;
           observer->new_server = true;
@@ -520,9 +520,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
             acceptance_threshold = observer->rtt_client[i];
           }
         }
-        acceptance_threshold *= REL_HEUR_THRESHOLD;
+        acceptance_threshold *= DYNA_HEUR_THRESHOLD;
 
-        if (rtt_candidate > acceptance_threshold || observer->rejected_client >= REL_HEUR_MAX_REJECT){
+        if (rtt_candidate > acceptance_threshold || observer->rejected_client >= DYNA_HEUR_MAX_REJECT){
           observer->rejected_client = 0;
           observer->rtt_client[++(observer->index_client)] = rtt_candidate;
           observer->new_client = true;
