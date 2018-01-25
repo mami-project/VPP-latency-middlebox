@@ -160,6 +160,21 @@ typedef struct {
   bool new_server;
 } stat_heur_spin_observer_t;
 
+#define REL_HEUR_THRESHOLD 0.1
+#define REL_HEUR_HISTORY_SIZE 10
+typedef struct {
+  u8 spin_client;
+  u8 spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client[REL_HEUR_HISTORY_SIZE];
+  f64 rtt_server[REL_HEUR_HISTORY_SIZE];
+  u8 index_client;
+  u8 index_server;
+  bool new_client;
+  bool new_server;
+} dyna_heur_spin_observer_t;
+
 /* State for each observed QUIC session */
 typedef struct
 {
@@ -178,6 +193,7 @@ typedef struct
   pn_valid_spin_observer_t pn_valid_spin_observer;
   two_bit_spin_observer_t two_bit_spin_observer;
   stat_heur_spin_observer_t stat_heur_spin_observer;
+  dyna_heur_spin_observer_t dyna_heur_spin_observer;
 
   /* Number of observed packets */
   u32 pkt_count;

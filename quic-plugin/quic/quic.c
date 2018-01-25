@@ -469,6 +469,66 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
   }
 
 
+  /*
+   * SIXTH we run the static heuristic observer
+   */
+  {
+    //TODO add 5 bellow accept anywayn
+    dyna_heur_spin_observer_t *observer = &(session->dyna_heur_spin_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      if (observer->spin_server != spin){
+        observer->spin_server = spin;
+        f64 rtt_candidate = now - observer->time_last_spin_server;
+
+        /* calculate the acceptance treshold */
+        f64 acceptance_threshold = observer->rtt_server[0];
+        for(int i = 1; i < REL_HEUR_HISTORY_SIZE; i++){
+          if (observer->rtt_server[i] < acceptance_threshold){
+            acceptance_threshold = observer->rtt_server[i];
+          }
+        }
+        acceptance_threshold *= REL_HEUR_THRESHOLD;
+
+        if (rtt_candidate > acceptance_threshold){
+          observer->rtt_server[++(observer->index_server)] = rtt_candidate;
+          observer->new_server = true;
+          updated_rtt = true;
+          /* The assumption is that a packet has been held back long enough to arrive
+           * after the valid spin edge, therefor, we completely ignore this false spin edge
+           * and do not report the time at which we saw this packet */
+          observer->time_last_spin_server = now;
+
+        }
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      if (observer->spin_client != spin){
+        observer->spin_client = spin;
+        f64 rtt_candidate = now - observer->time_last_spin_client;
+
+        /* calculate the acceptance treshold */
+        f64 acceptance_threshold = observer->rtt_client[0];
+        for(int i = 1; i < REL_HEUR_HISTORY_SIZE; i++){
+          if (observer->rtt_client[i] < acceptance_threshold){
+            acceptance_threshold = observer->rtt_client[i];
+          }
+        }
+        acceptance_threshold *= REL_HEUR_THRESHOLD;
+
+        if (rtt_candidate > acceptance_threshold){
+          observer->rtt_client[++(observer->index_client)] = rtt_candidate;
+          observer->new_client = true;
+          updated_rtt = true;
+          /* see comment for packets from server */
+          observer->time_last_spin_client = now;
+        }
+      }
+    }
+  }
+
   /* Now it is time to print the rtt estimates to stdout */
   /* If this is the first time we run, print CSV file header */
   if (session->pkt_count == 1){
@@ -478,6 +538,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
     quic_printf(vm, ", %10s, %10s", "pn_valid_data", "pn_valid_new");
     quic_printf(vm, ", %10s, %10s", "two_bit_data", "two_bit_new");
     quic_printf(vm, ", %10s, %10s", "stat_heur_data", "stat_heur_new");
+    quic_printf(vm, ", %10s, %10s", "rel_heur_data", "rel_heur_new");
     quic_printf(vm, "\n");
   }
   if (updated_rtt) {
@@ -494,6 +555,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                                     session->two_bit_spin_observer.new_server);
       quic_printf(vm, ", %10.*lf, %10d", session->stat_heur_spin_observer.rtt_server, RTT_PRECISION,
                                     session->stat_heur_spin_observer.new_server);
+      quic_printf(vm, ", %10.*lf, %10d",
+            session->dyna_heur_spin_observer.rtt_server[session->dyna_heur_spin_observer.index_server],
+            RTT_PRECISION, session->dyna_heur_spin_observer.new_server);
       quic_printf(vm, "\n");
 
       session->basic_spinbit_observer.new_server = false;
@@ -501,6 +565,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       session->pn_valid_spin_observer.new_server = false;
       session->two_bit_spin_observer.new_server = false;
       session->stat_heur_spin_observer.new_server = false;
+      session->dyna_heur_spin_observer.new_server = false;
 
     } else {
       quic_printf(vm, "%10.*lf, %10u, %10s", now, TIME_PRECISION, packet_number, "client");
@@ -514,6 +579,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                                     session->two_bit_spin_observer.new_client);
       quic_printf(vm, ", %10.*lf, %10d", session->stat_heur_spin_observer.rtt_client, RTT_PRECISION,
                                     session->stat_heur_spin_observer.new_client);
+      quic_printf(vm, ", %10.*lf, %10d",
+            session->dyna_heur_spin_observer.rtt_client[session->dyna_heur_spin_observer.index_client],
+            RTT_PRECISION, session->dyna_heur_spin_observer.new_client);
       quic_printf(vm, "\n");
 
       session->basic_spinbit_observer.new_client = false;
@@ -521,6 +589,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       session->pn_valid_spin_observer.new_client = false;
       session->two_bit_spin_observer.new_client = false;
       session->stat_heur_spin_observer.new_client = false;
+      session->dyna_heur_spin_observer.new_client = false;
     }
   }
 }
@@ -564,7 +633,8 @@ u32 create_session() {
   session->two_bit_spin_observer.spin_server = SPIN_NOT_KNOWN;
   session->stat_heur_spin_observer.spin_client = SPIN_NOT_KNOWN;
   session->stat_heur_spin_observer.spin_server = SPIN_NOT_KNOWN;
-
+  session->dyna_heur_spin_observer.spin_client = SPIN_NOT_KNOWN;
+  session->dyna_heur_spin_observer.spin_server = SPIN_NOT_KNOWN;
   return session->index;
 }
 
