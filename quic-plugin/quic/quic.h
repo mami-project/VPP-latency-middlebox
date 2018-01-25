@@ -87,40 +87,44 @@ typedef enum {
 
 #define QUIC_PORT 4433
 
+#define TIME_PRECISION 8
+#define RTT_PRECISION 4
+
+#define SPIN_NOT_KNOWN 255
+
 #define TWO_BIT_SPIN 0xc0
 #define ONE_BIT_SPIN 0x40
 #define VALID_BIT 0x20
 #define BLOCKING_BIT 0x10
 #define TWO_BIT_SPIN_OFFSET 6
 
-#ifdef QUIC_BASIC_SPINBIT_OBSERVER
 typedef struct {
-  bool spin_client;
-  bool spin_server;
+  u8 spin_client;
+  u8 spin_server;
   f64 time_last_spin_client;
   f64 time_last_spin_server;
   f64 rtt_client;
   f64 rtt_server;
+  bool new_client;
+  bool new_server;
 } basic_spin_observer_t;
-#endif /* QUIC_BASIC_SPINBIT_OBSERVER */
 
-#ifdef QUIC_PN_SPINBIT_OBSERVER
 typedef struct {
-  bool spin_client;
-  bool spin_server;
+  u8 spin_client;
+  u8 spin_server;
   f64 time_last_spin_client;
   f64 time_last_spin_server;
   f64 rtt_client;
   f64 rtt_server;
   u32 pn_client;
   u32 pn_server;
+  bool new_client;
+  bool new_server;
 } pn_spin_observer_t;
-#endif /* QUIC_PN_SPINBIT_OBSERVER */
 
-#ifdef QUIC_PN_VALID_SPINBIT_OBSERVER
 typedef struct {
-  bool spin_client;
-  bool spin_server;
+  u8 spin_client;
+  u8 spin_server;
   bool valid_client;
   bool valid_server;
   f64 time_last_spin_client;
@@ -129,10 +133,10 @@ typedef struct {
   f64 rtt_server;
   u32 pn_client;
   u32 pn_server;
+  bool new_client;
+  bool new_server;
 } pn_valid_spin_observer_t;
-#endif /* QUIC_PN_VALID_SPINBIT_OBSERVER */
 
-#ifdef QUIC_TWO_BIT_SPIN_OBSERVER
  typedef  struct {
   u8 spin_client;
   u8 spin_server;
@@ -140,22 +144,21 @@ typedef struct {
   f64 time_last_spin_server;
   f64 rtt_client;
   f64 rtt_server;
+  bool new_client;
+  bool new_server;
 } two_bit_spin_observer_t;
-#endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
 
-#ifdef QUIC_STAT_HEUR_SPINBIT_OBSERVER
 #define STAT_HEUR_THRESHOLD 0.001
 typedef struct {
-  bool spin_client;
-  bool spin_server;
+  u8 spin_client;
+  u8 spin_server;
   f64 time_last_spin_client;
   f64 time_last_spin_server;
   f64 rtt_client;
   f64 rtt_server;
+  bool new_client;
+  bool new_server;
 } stat_heur_spin_observer_t;
-#endif /* QUIC_STAT_HEUR_SPINBIT_OBSERVER */
-
-
 
 /* State for each observed QUIC session */
 typedef struct
@@ -170,25 +173,11 @@ typedef struct
   u64 id;
 
   /* Data structures for the various spin bit observers */
-#ifdef QUIC_BASIC_SPINBIT_OBSERVER
   basic_spin_observer_t basic_spinbit_observer;
-#endif /* QUIC_BASIC_SPINBIT_OBSERVER */
-
-#ifdef QUIC_PN_SPINBIT_OBSERVER
   pn_spin_observer_t pn_spin_observer;
-#endif /* QUIC_PN_SPINBIT_OBSERVER */
-
-#ifdef QUIC_PN_VALID_SPINBIT_OBSERVER
   pn_valid_spin_observer_t pn_valid_spin_observer;
-#endif /* QUIC_PN_VALID_SPINBIT_OBSERVER */
-
-#ifdef QUIC_TWO_BIT_SPIN_OBSERVER
   two_bit_spin_observer_t two_bit_spin_observer;
-#endif /* QUIC_TWO_BIT_SPIN_OBSERVER */
-
-#ifdef QUIC_STAT_HEUR_SPINBIT_OBSERVER
   stat_heur_spin_observer_t stat_heur_spin_observer;
-#endif /* QUIC_STAT_HEUR_SPINBIT_OBSERVER */
 
   /* Number of observed packets */
   u32 pkt_count;
@@ -245,6 +234,7 @@ u32 create_session();
 void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 measurement, u32 packet_number);
 void clean_session(u32 index);
+void quic_printf (vlib_main_t * vm, char *fmt, ...);
 
 /**
  * @brief get quic session for index
@@ -295,6 +285,8 @@ always_inline bool comes_after_u32(u32 now, u32 old) {
   }
   return ret < MAX_SKIP;
 }
+
+
 
 #define QUIC_PLUGIN_BUILD_VER "0.1"
 
