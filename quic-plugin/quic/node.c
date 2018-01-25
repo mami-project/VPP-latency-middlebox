@@ -202,17 +202,17 @@ quic_node_fn (vlib_main_t * vm,
             vlib_buffer_advance(b0, SIZE_ID);
             total_advance += SIZE_ID;
 
-            /* Get version */
-            u32 *temp_version = vlib_buffer_get_current(b0);
-            quic_version = clib_net_to_host_u32(*temp_version);
-            vlib_buffer_advance(b0, SIZE_VERSION);
-            total_advance += SIZE_VERSION;
-
             /* Get packet number PN */
             u32* temp_pn = vlib_buffer_get_current(b0);
             packet_number = clib_net_to_host_u32(*temp_pn);
             vlib_buffer_advance(b0, SIZE_NUMBER_32);
             total_advance += SIZE_NUMBER_32;
+
+            /* Get version */
+            u32 *temp_version = vlib_buffer_get_current(b0);
+            quic_version = clib_net_to_host_u32(*temp_version);
+            vlib_buffer_advance(b0, SIZE_VERSION);
+            total_advance += SIZE_VERSION;
 
           /* SHORT HEADER */
           } else {
