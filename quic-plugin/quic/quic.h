@@ -162,6 +162,7 @@ typedef struct {
 
 #define REL_HEUR_THRESHOLD 0.1
 #define REL_HEUR_HISTORY_SIZE 10
+#define REL_HEUR_MAX_REJECT 5
 typedef struct {
   u8 spin_client;
   u8 spin_server;
@@ -171,6 +172,8 @@ typedef struct {
   f64 rtt_server[REL_HEUR_HISTORY_SIZE];
   u8 index_client;
   u8 index_server;
+  u8 rejected_client;
+  u8 rejected_server;
   bool new_client;
   bool new_server;
 } dyna_heur_spin_observer_t;

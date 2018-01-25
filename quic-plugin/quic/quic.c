@@ -492,7 +492,8 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
         }
         acceptance_threshold *= REL_HEUR_THRESHOLD;
 
-        if (rtt_candidate > acceptance_threshold){
+        if (rtt_candidate > acceptance_threshold || observer->rejected_server >= REL_HEUR_MAX_REJECT){
+          observer->rejected_server = 0;
           observer->rtt_server[++(observer->index_server)] = rtt_candidate;
           observer->new_server = true;
           updated_rtt = true;
@@ -501,6 +502,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
            * and do not report the time at which we saw this packet */
           observer->time_last_spin_server = now;
 
+        /* if the rtt_candidate is rejected */
+        } else {
+          observer->rejected_server++;
         }
       }
     /* if this is a packet from the CLIENT */
@@ -518,12 +522,15 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
         }
         acceptance_threshold *= REL_HEUR_THRESHOLD;
 
-        if (rtt_candidate > acceptance_threshold){
+        if (rtt_candidate > acceptance_threshold || observer->rejected_client >= REL_HEUR_MAX_REJECT){
+          observer->rejected_client = 0;
           observer->rtt_client[++(observer->index_client)] = rtt_candidate;
           observer->new_client = true;
           updated_rtt = true;
           /* see comment for packets from server */
           observer->time_last_spin_client = now;
+        } else {
+          observer->rejected_client++;
         }
       }
     }
