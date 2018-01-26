@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2015 Cisco and/or its affiliates.
+		/*
+	 * Copyright (c) 2015 Cisco and/or its affiliates.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
@@ -136,7 +136,9 @@ plus_node_fn (vlib_main_t * vm,
     
       /* Keeps track of all the buffer movement */
       u8 total_advance = 0;
-      
+      /* If we have an extended header */
+      bool ext_hop_c = false;
+ 
       /* Currently, most packets should be PLUS packets */
       if (PREDICT_TRUE(b0->current_length >= SIZE_IP4 + SIZE_UDP + SIZE_PLUS)) {
         /* Get IP4 header */
@@ -259,8 +261,7 @@ plus_node_fn (vlib_main_t * vm,
             
           /* Handle extended header */
           plus_ext_hop_c_h_t *plus_ext_hop_c0;
-          bool ext_hop_c = false;
-
+          
           /* Enough space for extended header */
           if ((plus0->magic_and_flags & EXTENDED) && b0->current_length
                >= SIZE_PLUS + SIZE_PLUS_EXT_HELLO) {
@@ -300,6 +301,15 @@ plus_node_fn (vlib_main_t * vm,
       
         /* Move buffer pointer back such that ip4-lookup get expected position */
         vlib_buffer_advance (b0, -total_advance);
+
+        /* Update UDP checksum if extended header */
+        if (ext_hop_c) {
+          /* To make sure that old checksum is not used in computation of new one */
+          udp0->checksum = 0;
+          udp0->checksum = ip4_tcp_udp_compute_checksum (vm, b0, ip0);
+          if (udp0->checksum == 0)
+            udp0->checksum = 0xffff;
+        }
       }
       /* verify speculative enqueue, maybe switch current next frame */
       vlib_validate_buffer_enqueue_x1 (vm, node, next_index,
