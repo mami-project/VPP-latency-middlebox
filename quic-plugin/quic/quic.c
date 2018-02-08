@@ -470,7 +470,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
 
   /*
-   * SIXTH we run the static heuristic observer
+   * SIXTH we run the dynamic heuristic observer
    */
   {
     //TODO add 5 bellow accept anywayn
@@ -494,7 +494,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
         if (rtt_candidate > acceptance_threshold || observer->rejected_server >= DYNA_HEUR_MAX_REJECT){
           observer->rejected_server = 0;
-          observer->rtt_server[++(observer->index_server)] = rtt_candidate;
+          observer->server_client =
+            (observer->server_client + 1) % DYNA_HEUR_HISTORY_SIZE
+          observer->rtt_server[observer->index_server] = rtt_candidate;
           observer->new_server = true;
           updated_rtt = true;
           /* The assumption is that a packet has been held back long enough to arrive
@@ -524,7 +526,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
         if (rtt_candidate > acceptance_threshold || observer->rejected_client >= DYNA_HEUR_MAX_REJECT){
           observer->rejected_client = 0;
-          observer->rtt_client[++(observer->index_client)] = rtt_candidate;
+          observer->index_client =
+            (observer->index_client + 1) % DYNA_HEUR_HISTORY_SIZE
+          observer->rtt_client[observer->index_client] = rtt_candidate;
           observer->new_client = true;
           updated_rtt = true;
           /* see comment for packets from server */
