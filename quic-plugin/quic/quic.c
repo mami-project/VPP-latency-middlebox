@@ -543,33 +543,33 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
   /* Now it is time to print the rtt estimates to stdout */
   /* If this is the first time we run, print CSV file header */
   if (session->pkt_count == 1){
-    quic_printf(vm, "%s, %s, %s", "time", "pn", "host");
-    quic_printf(vm, ", %s, %s", "basic_data", "basic_new");
-    quic_printf(vm, ", %s, %s", "pn_data", "pn_new");
-    quic_printf(vm, ", %s, %s", "pn_valid_data", "pn_valid_new");
-    quic_printf(vm, ", %s, %s", "two_bit_data", "two_bit_new");
-    quic_printf(vm, ", %s, %s", "stat_heur_data", "stat_heur_new");
-    quic_printf(vm, ", %s, %s", "rel_heur_data", "rel_heur_new");
-    quic_printf(vm, "\n");
+    quic_printf(0, "%s, %s, %s", "time", "pn", "host");
+    quic_printf(0, ", %s, %s", "basic_data", "basic_new");
+    quic_printf(0, ", %s, %s", "pn_data", "pn_new");
+    quic_printf(0, ", %s, %s", "pn_valid_data", "pn_valid_new");
+    quic_printf(0, ", %s, %s", "two_bit_data", "two_bit_new");
+    quic_printf(0, ", %s, %s", "stat_heur_data", "stat_heur_new");
+    quic_printf(0, ", %s, %s", "rel_heur_data", "rel_heur_new");
+    quic_printf(0, "\n");
   }
   if (updated_rtt) {
     /* Now print the actual data */
     if (src_port == QUIC_PORT) {
-      quic_printf(vm, "%.*lf, %u, %s", now, TIME_PRECISION, packet_number, "server");
-      quic_printf(vm, ", %.*lf, %d", session->basic_spinbit_observer.rtt_server, RTT_PRECISION,
+      quic_printf(0, "%.*lf, %u, %s", now, TIME_PRECISION, packet_number, "server");
+      quic_printf(0, ", %.*lf, %d", session->basic_spinbit_observer.rtt_server, RTT_PRECISION,
                                     session->basic_spinbit_observer.new_server);
-      quic_printf(vm, ", %.*lf, %d", session->pn_spin_observer.rtt_server, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->pn_spin_observer.rtt_server, RTT_PRECISION,
                                     session->pn_spin_observer.new_server);
-      quic_printf(vm, ", %.*lf, %d", session->pn_valid_spin_observer.rtt_server, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->pn_valid_spin_observer.rtt_server, RTT_PRECISION,
                                     session->pn_valid_spin_observer.new_server);
-      quic_printf(vm, ", %.*lf, %d", session->two_bit_spin_observer.rtt_server, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->two_bit_spin_observer.rtt_server, RTT_PRECISION,
                                     session->two_bit_spin_observer.new_server);
-      quic_printf(vm, ", %.*lf, %d", session->stat_heur_spin_observer.rtt_server, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->stat_heur_spin_observer.rtt_server, RTT_PRECISION,
                                     session->stat_heur_spin_observer.new_server);
-      quic_printf(vm, ", %.*lf, %d",
+      quic_printf(0, ", %.*lf, %d",
             session->dyna_heur_spin_observer.rtt_server[session->dyna_heur_spin_observer.index_server],
             RTT_PRECISION, session->dyna_heur_spin_observer.new_server);
-      quic_printf(vm, "\n");
+      quic_printf(1, "\n");
 
       session->basic_spinbit_observer.new_server = false;
       session->pn_spin_observer.new_server = false;
@@ -579,21 +579,21 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       session->dyna_heur_spin_observer.new_server = false;
 
     } else {
-      quic_printf(vm, "%.*lf, %u, %s", now, TIME_PRECISION, packet_number, "client");
-      quic_printf(vm, ", %.*lf, %d", session->basic_spinbit_observer.rtt_client, RTT_PRECISION,
+      quic_printf(0, "%.*lf, %u, %s", now, TIME_PRECISION, packet_number, "client");
+      quic_printf(0, ", %.*lf, %d", session->basic_spinbit_observer.rtt_client, RTT_PRECISION,
                                     session->basic_spinbit_observer.new_client);
-      quic_printf(vm, ", %.*lf, %d", session->pn_spin_observer.rtt_client, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->pn_spin_observer.rtt_client, RTT_PRECISION,
                                     session->pn_spin_observer.new_client);
-      quic_printf(vm, ", %.*lf, %d", session->pn_valid_spin_observer.rtt_client, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->pn_valid_spin_observer.rtt_client, RTT_PRECISION,
                                     session->pn_valid_spin_observer.new_client);
-      quic_printf(vm, ", %.*lf, %d", session->two_bit_spin_observer.rtt_client, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->two_bit_spin_observer.rtt_client, RTT_PRECISION,
                                     session->two_bit_spin_observer.new_client);
-      quic_printf(vm, ", %.*lf, %d", session->stat_heur_spin_observer.rtt_client, RTT_PRECISION,
+      quic_printf(0, ", %.*lf, %d", session->stat_heur_spin_observer.rtt_client, RTT_PRECISION,
                                     session->stat_heur_spin_observer.new_client);
-      quic_printf(vm, ", %.*lf, %d",
+      quic_printf(0, ", %.*lf, %d",
             session->dyna_heur_spin_observer.rtt_client[session->dyna_heur_spin_observer.index_client],
             RTT_PRECISION, session->dyna_heur_spin_observer.new_client);
-      quic_printf(vm, "\n");
+      quic_printf(1, "\n");
 
       session->basic_spinbit_observer.new_client = false;
       session->pn_spin_observer.new_client = false;
@@ -699,7 +699,7 @@ static void timer_expired_callback(u32 * expired_timers)
 
 /* Output to CLI / stdout, this is a modified copy of `vlib_cli_output` */
 void
-quic_printf (vlib_main_t * vm, char *fmt, ...)
+quic_printf (int flush, char *fmt, ...)
 {
   // vlib_process_t *cp = vlib_get_current_process (vm);
   va_list va;
@@ -721,6 +721,10 @@ quic_printf (vlib_main_t * vm, char *fmt, ...)
     output_file = fopen("/tmp/quic_printf.out", "w");
   }
   fprintf(output_file, "%s", s);
+
+  if (flush){
+    fflush(output_file);
+  }
   //dprintf(42, "%s", s);
   //else
   //  cp->output_function (cp->output_function_arg, s, vec_len (s));

@@ -253,7 +253,7 @@ u32 create_session();
 void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 measurement, u32 packet_number);
 void clean_session(u32 index);
-void quic_printf (vlib_main_t * vm, char *fmt, ...);
+void quic_printf (int flush, char *fmt, ...);
 
 /**
  * @brief get quic session for index
@@ -304,6 +304,8 @@ always_inline bool comes_after_u32(u32 now, u32 old) {
   }
   return ret < MAX_SKIP;
 }
+
+
 
 
 
