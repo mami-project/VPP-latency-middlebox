@@ -494,8 +494,8 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
         if (rtt_candidate > acceptance_threshold || observer->rejected_server >= DYNA_HEUR_MAX_REJECT){
           observer->rejected_server = 0;
-          observer->server_client =
-            (observer->server_client + 1) % DYNA_HEUR_HISTORY_SIZE
+          observer->index_server =
+            (observer->index_server + 1) % DYNA_HEUR_HISTORY_SIZE;
           observer->rtt_server[observer->index_server] = rtt_candidate;
           observer->new_server = true;
           updated_rtt = true;
@@ -527,7 +527,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
         if (rtt_candidate > acceptance_threshold || observer->rejected_client >= DYNA_HEUR_MAX_REJECT){
           observer->rejected_client = 0;
           observer->index_client =
-            (observer->index_client + 1) % DYNA_HEUR_HISTORY_SIZE
+            (observer->index_client + 1) % DYNA_HEUR_HISTORY_SIZE;
           observer->rtt_client[observer->index_client] = rtt_candidate;
           observer->new_client = true;
           updated_rtt = true;
@@ -705,6 +705,8 @@ quic_printf (vlib_main_t * vm, char *fmt, ...)
   va_list va;
   u8 *s;
 
+  static FILE *output_file = NULL;
+
   va_start (va, fmt);
   s = va_format (0, fmt, &va);
   va_end (va);
@@ -715,7 +717,11 @@ quic_printf (vlib_main_t * vm, char *fmt, ...)
 
   //if ((!cp) || (!cp->output_function))
 
-  dprintf(42, "%s", s);
+  if (output_file == NULL){
+    output_file = fopen("/tmp/quic_printf.out", "w");
+  }
+  fprintf(output_file, "%s", s);
+  //dprintf(42, "%s", s);
   //else
   //  cp->output_function (cp->output_function_arg, s, vec_len (s));
 
