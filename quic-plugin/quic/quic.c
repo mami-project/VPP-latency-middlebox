@@ -589,7 +589,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
     quic_printf(0, ", %s, %s", "two_bit_data", "two_bit_new");
     quic_printf(0, ", %s, %s", "stat_heur_data", "stat_heur_new");
     quic_printf(0, ", %s, %s", "rel_heur_data", "rel_heur_new");
-    quic_printf(0, ", %s, %s", "handshake", "handshake_new");
+    quic_printf(0, ", %s, %s", "handshake_data", "handshake_new");
     quic_printf(0, "\n");
   }
   if (session->updated_rtt) {
