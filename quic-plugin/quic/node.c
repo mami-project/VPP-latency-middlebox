@@ -311,7 +311,14 @@ quic_node_fn (vlib_main_t * vm,
 
           /* Keep track of packets for each flow */
           session->pkt_count ++;
-           
+          session->updated_rtt = false;
+
+
+          /* Do handshake RTT estimation */
+          update_handshake_rtt(vm, session, vlib_time_now (vm),
+                          clib_net_to_host_u16(udp0->src_port), *type);
+
+          /* Do spinbit RTT estimation */
           update_rtt_estimate(vm, session, vlib_time_now (vm),
                           clib_net_to_host_u16(udp0->src_port), measurement,
                           packet_number); 

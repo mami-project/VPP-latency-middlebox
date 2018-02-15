@@ -43,13 +43,27 @@
 #ifndef __included_quic_h__
 #define __included_quic_h__
 
-/* Select which observers to run */
-#define QUIC_BASIC_SPINBIT_OBSERVER
-#define QUIC_PN_SPINBIT_OBSERVER
-#define QUIC_PN_VALID_SPINBIT_OBSERVER
-#define QUIC_TWO_BIT_SPIN_OBSERVER
-#define QUIC_STAT_HEUR_SPINBIT_OBSERVER
+/* Quic handshake states for handshake RTT measurement */
+#define QUIC_HANDSHAKE_IDLE               0
+#define QUIC_HANDSHAKE_CLIENT_INITIAL     1
+#define QUIC_HANDSHAKE_SERVER_CLEARTEXT   2
+#define QUIC_HANDSHAKE_CLIENT_CLEARTEXT   3
 
+/* Quic header types */
+#define QUIC_PACKET_LONG_VERSION_NEGOTIATION      0x81
+#define QUIC_PACKET_LONG_CLIENT_INITIAL           0x82
+#define QUIC_PACKET_LONG_SERVER_STATELESS_RETRY   0x83
+#define QUIC_PACKET_LONG_SERVER_CLEARTEXT         0x84
+#define QUIC_PACKET_LONG_CLIENT_CLEARTEXT         0x85
+#define QUIC_PACKET_LONG_0_RTT_PROTECTED          0x86
+#define QUIC_PACKET_LONG_1_RTT_PROTECTED_PHASE_1  0x87
+#define QUIC_PACKET_LONG_1_RTT_PROTECTED_PHASE_2  0x88
+#define QUIC_PACKET_SHORT_1_OCTET                 0x01
+#define QUIC_PACKET_SHORT_2_OCTET                 0x02
+#define QUIC_PACKET_SHORT_4_OCTET                 0x03
+
+#define QUIC_PACKET_SHORT_MASK                    0b10011111
+#define QUIC_PACKET_LONG_MASK                     0b11111111
 
 #include <vnet/vnet.h>
 #include <vnet/ip/ip.h>
@@ -190,6 +204,12 @@ typedef struct
   u32 src;
   u64 id;
 
+  /* Handshake RTT estimation */
+  u8  handshake_state;
+  f64 handshake_start_time;
+  f64 handshake_rtt;
+  bool new_handshake_rtt;
+
   /* Data structures for the various spin bit observers */
   basic_spin_observer_t basic_spinbit_observer;
   pn_spin_observer_t pn_spin_observer;
@@ -197,6 +217,8 @@ typedef struct
   two_bit_spin_observer_t two_bit_spin_observer;
   stat_heur_spin_observer_t stat_heur_spin_observer;
   dyna_heur_spin_observer_t dyna_heur_spin_observer;
+
+  bool updated_rtt;
 
   /* Number of observed packets */
   u32 pkt_count;
@@ -252,6 +274,9 @@ quic_session_t * get_session_from_key(quic_key_t * kv_in);
 u32 create_session();
 void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 measurement, u32 packet_number);
+void update_handshake_rtt(vlib_main_t * vm, quic_session_t * session, f64 now,
+                u16 src_port, u8 packet_type);
+
 void clean_session(u32 index);
 void quic_printf (int flush, char *fmt, ...);
 
