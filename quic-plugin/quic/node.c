@@ -108,7 +108,7 @@ static char * quic_error_strings[] = {
 #define SIZE_QUIC_SPIN 1
 
 /* Timeout values (in 100ms) */
-#define TIMEOUT 50
+#define TIMEOUT 360
 
 /* We run before ethernet_input node */
 /* TODO: change if either pcap file is adapted
