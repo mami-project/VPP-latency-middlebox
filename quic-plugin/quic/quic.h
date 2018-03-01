@@ -151,6 +151,19 @@ typedef struct {
   bool new_server;
 } pn_valid_spin_observer_t;
 
+typedef struct {
+  u8 spin_client;
+  u8 spin_server;
+  bool valid_client;
+  bool valid_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+  bool new_client;
+  bool new_server;
+} valid_spin_observer_t;
+
  typedef  struct {
   u8 spin_client;
   u8 spin_server;
@@ -214,6 +227,7 @@ typedef struct
   basic_spin_observer_t basic_spinbit_observer;
   pn_spin_observer_t pn_spin_observer;
   pn_valid_spin_observer_t pn_valid_spin_observer;
+  valid_spin_observer_t valid_spin_observer;
   two_bit_spin_observer_t two_bit_spin_observer;
   stat_heur_spin_observer_t stat_heur_spin_observer;
   dyna_heur_spin_observer_t dyna_heur_spin_observer;
