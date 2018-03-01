@@ -111,6 +111,7 @@ typedef enum {
 #define VALID_BIT 0x20
 #define BLOCKING_BIT 0x10
 #define TWO_BIT_SPIN_OFFSET 6
+#define VALID_EDGE_BIT 0x01
 
 typedef struct {
   u8 spin_client;
@@ -163,6 +164,34 @@ typedef struct {
   bool new_client;
   bool new_server;
 } valid_spin_observer_t;
+
+typedef struct {
+  u8 spin_client;
+  u8 spin_server;
+  bool valid_client;
+  bool valid_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+  u32 pn_client;
+  u32 pn_server;
+  bool new_client;
+  bool new_server;
+} pn_valid_edge_spin_observer_t;
+
+typedef struct {
+  u8 spin_client;
+  u8 spin_server;
+  bool valid_client;
+  bool valid_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+  bool new_client;
+  bool new_server;
+} valid_edge_spin_observer_t;
 
  typedef  struct {
   u8 spin_client;
@@ -228,6 +257,8 @@ typedef struct
   pn_spin_observer_t pn_spin_observer;
   pn_valid_spin_observer_t pn_valid_spin_observer;
   valid_spin_observer_t valid_spin_observer;
+  pn_valid_edge_spin_observer_t pn_valid_edge_spin_observer;
+  valid_edge_spin_observer_t valid_edge_spin_observer;
   two_bit_spin_observer_t two_bit_spin_observer;
   stat_heur_spin_observer_t stat_heur_spin_observer;
   dyna_heur_spin_observer_t dyna_heur_spin_observer;

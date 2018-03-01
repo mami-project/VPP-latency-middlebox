@@ -474,10 +474,98 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
     }
   }
 
+ /*
+   * FIFTH we run the packet number (PN) observer with VALID EDGE bit
+   */
+  {
+    //TODO this does not handle PN wrap arrounds yet
+    pn_valid_edge_spin_observer_t *observer = &(session->pn_valid_edge_spin_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
+    bool valid = measurement & VALID_EDGE_BIT;
 
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      /* check if arrived in order and has different spin */
+      if (packet_number > observer->pn_server && observer->spin_server != spin) {
+        observer->spin_server = spin;
+        observer->pn_server = packet_number;
+        observer->valid_server = valid;
+        /* only report and store RTT if it was valid over the entire roundtrip */
+        if (observer->valid_server && observer->valid_client){
+          observer->rtt_server = now - observer->time_last_spin_server;
+          observer->new_server = true;
+          session->updated_rtt = true;
+          //vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+          //                now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+        }
+        observer->time_last_spin_server = now;
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      /* check if arrived in order and has different spin */
+      if (packet_number > observer->pn_client && observer->spin_client != spin) {
+        observer->spin_client = spin;
+        observer->pn_client = packet_number;
+        observer->valid_client = valid;
+        /* only report and store RTT if it was valid over the entire roundtrip */
+        if (observer->valid_server && observer->valid_client){
+          observer->rtt_client = now - observer->time_last_spin_client;
+          observer->new_client = true;
+          session->updated_rtt = true;
+          //vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+          //                now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+        }
+        observer->time_last_spin_client = now;
+      }
+    }
+  }
 
   /*
-   * FIFTH we run the dual spin bit observer
+   * SIXTH we run the observer with only the VALID EDGE bit
+   */
+  {
+    //TODO this does not handle PN wrap arrounds yet
+    valid_edge_spin_observer_t *observer = &(session->valid_edge_spin_observer);
+    bool spin = measurement & ONE_BIT_SPIN;
+    bool valid = measurement & VALID_EDGE_BIT;
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      /* check if arrived in order and has different spin */
+      if (observer->spin_server != spin) {
+        observer->spin_server = spin;
+        observer->valid_server = valid;
+        /* only report and store RTT if it was valid over the entire roundtrip */
+        if (observer->valid_server && observer->valid_client){
+          observer->rtt_server = now - observer->time_last_spin_server;
+          observer->new_server = true;
+          session->updated_rtt = true;
+          //vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+          //                now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+        }
+        observer->time_last_spin_server = now;
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      /* check if arrived in order and has different spin */
+      if (observer->spin_client != spin) {
+        observer->spin_client = spin;
+        observer->valid_client = valid;
+        /* only report and store RTT if it was valid over the entire roundtrip */
+        if (observer->valid_server && observer->valid_client){
+          observer->rtt_client = now - observer->time_last_spin_client;
+          observer->new_client = true;
+          session->updated_rtt = true;
+          //vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+          //                now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+        }
+        observer->time_last_spin_client = now;
+      }
+    }
+  }
+
+  /*
+   * SEVENT we run the dual spin bit observer
    */
   {
     //TODO this does not handle PN wrap arrounds yet
@@ -511,7 +599,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
   }
 
   /*
-   * SIXTH we run the static heuristic observer
+   * EIGHTH we run the static heuristic observer
    */
   {
     stat_heur_spin_observer_t *observer = &(session->stat_heur_spin_observer);
@@ -555,7 +643,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
 
 
   /*
-   * SEVENTH we run the dynamic heuristic observer
+   * NINETH we run the dynamic heuristic observer
    */
   {
     //TODO add 5 bellow accept anywayn
@@ -632,7 +720,9 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
     quic_printf(0, ", %s, %s", "basic_data", "basic_new");
     quic_printf(0, ", %s, %s", "pn_data", "pn_new");
     quic_printf(0, ", %s, %s", "pn_valid_data", "pn_valid_new");
-	quic_printf(0, ", %s, %s", "valid_data", "valid_new");
+    quic_printf(0, ", %s, %s", "valid_data", "valid_new");
+    quic_printf(0, ", %s, %s", "pn_valid_edge_data", "pn_valid_edge_new");
+    quic_printf(0, ", %s, %s", "valid_edge_data", "valid_edge_new");
     quic_printf(0, ", %s, %s", "two_bit_data", "two_bit_new");
     quic_printf(0, ", %s, %s", "stat_heur_data", "stat_heur_new");
     quic_printf(0, ", %s, %s", "rel_heur_data", "rel_heur_new");
@@ -651,6 +741,10 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                                     session->pn_valid_spin_observer.new_server);
       quic_printf(0, ", %.*lf, %d", session->valid_spin_observer.rtt_server, RTT_PRECISION,
                                     session->valid_spin_observer.new_server);
+      quic_printf(0, ", %.*lf, %d", session->pn_valid_edge_spin_observer.rtt_server, RTT_PRECISION,
+                                    session->pn_valid_edge_spin_observer.new_server);
+      quic_printf(0, ", %.*lf, %d", session->valid_edge_spin_observer.rtt_server, RTT_PRECISION,
+                                    session->valid_edge_spin_observer.new_server);
       quic_printf(0, ", %.*lf, %d", session->two_bit_spin_observer.rtt_server, RTT_PRECISION,
                                     session->two_bit_spin_observer.new_server);
       quic_printf(0, ", %.*lf, %d", session->stat_heur_spin_observer.rtt_server, RTT_PRECISION,
@@ -665,6 +759,8 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       session->pn_spin_observer.new_server = false;
       session->pn_valid_spin_observer.new_server = false;
       session->valid_spin_observer.new_server = false;
+      session->pn_valid_edge_spin_observer.new_server = false;
+      session->valid_edge_spin_observer.new_server = false;
       session->two_bit_spin_observer.new_server = false;
       session->stat_heur_spin_observer.new_server = false;
       session->dyna_heur_spin_observer.new_server = false;
@@ -680,6 +776,10 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                                     session->pn_valid_spin_observer.new_client);
       quic_printf(0, ", %.*lf, %d", session->valid_spin_observer.rtt_client, RTT_PRECISION,
                                     session->valid_spin_observer.new_client);
+      quic_printf(0, ", %.*lf, %d", session->pn_valid_edge_spin_observer.rtt_client, RTT_PRECISION,
+                                    session->pn_valid_edge_spin_observer.new_client);
+      quic_printf(0, ", %.*lf, %d", session->valid_edge_spin_observer.rtt_client, RTT_PRECISION,
+                                    session->valid_edge_spin_observer.new_client);
       quic_printf(0, ", %.*lf, %d", session->two_bit_spin_observer.rtt_client, RTT_PRECISION,
                                     session->two_bit_spin_observer.new_client);
       quic_printf(0, ", %.*lf, %d", session->stat_heur_spin_observer.rtt_client, RTT_PRECISION,
@@ -694,6 +794,8 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
       session->pn_spin_observer.new_client = false;
       session->pn_valid_spin_observer.new_client = false;
       session->valid_spin_observer.new_client = false;
+      session->pn_valid_edge_spin_observer.new_client = false;
+      session->valid_edge_spin_observer.new_client = false;
       session->two_bit_spin_observer.new_client = false;
       session->stat_heur_spin_observer.new_client = false;
       session->dyna_heur_spin_observer.new_client = false;
@@ -740,6 +842,10 @@ u32 create_session() {
   session->pn_valid_spin_observer.spin_server = SPIN_NOT_KNOWN;
   session->valid_spin_observer.spin_client = SPIN_NOT_KNOWN;
   session->valid_spin_observer.spin_server = SPIN_NOT_KNOWN;
+  session->pn_valid_edge_spin_observer.spin_client = SPIN_NOT_KNOWN;
+  session->pn_valid_edge_spin_observer.spin_server = SPIN_NOT_KNOWN;
+  session->valid_edge_spin_observer.spin_client = SPIN_NOT_KNOWN;
+  session->valid_edge_spin_observer.spin_server = SPIN_NOT_KNOWN;
   session->two_bit_spin_observer.spin_client = SPIN_NOT_KNOWN;
   session->two_bit_spin_observer.spin_server = SPIN_NOT_KNOWN;
   session->stat_heur_spin_observer.spin_client = SPIN_NOT_KNOWN;
