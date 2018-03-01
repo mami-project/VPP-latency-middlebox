@@ -112,6 +112,8 @@ typedef enum {
 #define BLOCKING_BIT 0x10
 #define TWO_BIT_SPIN_OFFSET 6
 #define VALID_EDGE_BIT 0x01
+#define STATUS_MASK 0x0c
+#define STATUS_SHIFT 2
 
 typedef struct {
   u8 spin_client;
@@ -193,6 +195,21 @@ typedef struct {
   bool new_server;
 } valid_edge_spin_observer_t;
 
+#define STATUS_INVALID      0b00
+#define STATUS_HANDSHAKE_1  0b01
+#define STATUS_HANDSHAKE_2  0b10
+#define STATUS_VALID        0b11
+typedef struct {
+  u8 spin_client;
+  u8 spin_server;
+  f64 time_last_spin_client;
+  f64 time_last_spin_server;
+  f64 rtt_client;
+  f64 rtt_server;
+  bool new_client;
+  bool new_server;
+} status_spin_observer_t;
+
  typedef  struct {
   u8 spin_client;
   u8 spin_server;
@@ -259,6 +276,7 @@ typedef struct
   valid_spin_observer_t valid_spin_observer;
   pn_valid_edge_spin_observer_t pn_valid_edge_spin_observer;
   valid_edge_spin_observer_t valid_edge_spin_observer;
+  status_spin_observer_t status_spin_observer;
   two_bit_spin_observer_t two_bit_spin_observer;
   stat_heur_spin_observer_t stat_heur_spin_observer;
   dyna_heur_spin_observer_t dyna_heur_spin_observer;
