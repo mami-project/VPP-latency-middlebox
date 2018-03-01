@@ -435,7 +435,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
    */
   {
     //TODO this does not handle PN wrap arrounds yet
-    pn_valid_spin_observer_t *observer = &(session->pn_valid_spin_observer);
+    valid_spin_observer_t *observer = &(session->valid_spin_observer);
     bool spin = measurement & ONE_BIT_SPIN;
     bool valid = measurement & VALID_BIT;
 
