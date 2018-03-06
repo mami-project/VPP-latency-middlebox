@@ -586,7 +586,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
           //vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
           //                now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
         }
-        if (status != STATUS_INVALID) observer->time_last_spin_server = now;
+		observer->time_last_spin_server = now;
       }
     /* if this is a packet from the CLIENT */
     } else {
@@ -601,7 +601,7 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
           //vlib_cli_output(vm, "[TIME:] %.*lf [PN-VALID-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
           //                now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
         }
-        if (status != STATUS_INVALID) observer->time_last_spin_client = now;
+        observer->time_last_spin_client = now;
       }
     }
   }
