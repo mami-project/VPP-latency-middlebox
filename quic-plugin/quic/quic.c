@@ -1048,41 +1048,6 @@ quic_printf (int flush, char *fmt, ...)
   vec_free (s);
 }
 
-/* Output to CLI / stdout, this is a modified copy of `vlib_cli_output` */
-void
-quic_printf_2 (int flush, char *fmt, ...)
-{
-  // vlib_process_t *cp = vlib_get_current_process (vm);
-  va_list va;
-  u8 *s;
-
-  static FILE *output_file = NULL;
-
-  va_start (va, fmt);
-  s = va_format (0, fmt, &va);
-  va_end (va);
-
-  ///* Terminate with \n if not present. */
-  //if (vec_len (s) > 0 && s[vec_len (s) - 1] != '\n')
-  //  vec_add1 (s, '\n');
-
-  //if ((!cp) || (!cp->output_function))
-
-  if (output_file == NULL){
-    output_file = fopen("/tmp/quic_printf_2.out", "w");
-  }
-  fprintf(output_file, "%s", s);
-
-  if (flush){
-    fflush(output_file);
-  }
-  //dprintf(42, "%s", s);
-  //else
-  //  cp->output_function (cp->output_function_arg, s, vec_len (s));
-
-  vec_free (s);
-}
-
 
 /**
  * @brief Initialize the quic plugin.

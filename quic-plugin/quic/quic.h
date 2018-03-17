@@ -344,7 +344,6 @@ void update_rtt_estimate_10(vlib_main_t * vm, quic_session_t * session, f64 now,
 
 void clean_session(u32 index);
 void quic_printf (int flush, char *fmt, ...);
-void quic_printf_2 (int flush, char *fmt, ...);
 
 /**
  * @brief get quic session for index
