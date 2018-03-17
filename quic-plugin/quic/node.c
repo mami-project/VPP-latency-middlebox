@@ -53,9 +53,9 @@ static u8 * format_quic_trace (u8 * s, va_list * args)
   s = format (s, "  Current state: %s, C: %u, K: %u, type: %u\n",
                   stateNames[t->state], t->id_bit ? 1 : 0,
                   t->key_bit ? 1 : 0, t->type);
-  s = format (s, "  Measurement byte: spin 2: %u, spin 1: %u, valid: %u, block: %u",
-                  t->spin_2 ? 1 : 0, t->spin_1 ? 1 : 0, t->valid ? 1 : 0,
-                  t->block ? 1 : 0);
+  //s = format (s, "  Measurement byte: spin 2: %u, spin 1: %u, valid: %u, block: %u",
+  //                t->spin_2 ? 1 : 0, t->spin_1 ? 1 : 0, t->valid ? 1 : 0,
+  //                t->block ? 1 : 0);
   return s;
 }
 
@@ -82,12 +82,13 @@ static char * quic_error_strings[] = {
 #define SIZE_IP4 20
 #define SIZE_UDP 8
 
-/* 8 bit type, 8 bit packet number, 8 bit measurement byte*/
-#define SIZE_QUIC_MIN 3
+/* 8 bit type, 8 bit packet number*/
+#define SIZE_QUIC_MIN 2
 
 #define IS_LONG 0x80
 #define HAS_ID 0x40
 #define KEY_FLAG 0x20
+#define SPIN_POSITION 0x10
 #define QUIC_TYPE 0x1F
 #define SIZE_TYPE 1
 /* Only true for current minq implementation (IETF draft 05)
@@ -189,6 +190,7 @@ quic_node_fn (vlib_main_t * vm,
           u64 connection_id;
           u32 packet_number, CLIB_UNUSED(quic_version);
           u8 *type = vlib_buffer_get_current(b0);
+          bool spin = *type & SPIN_POSITION;
 
           /* LONG HEADER */
           /* We expect most packets to have the short header */
@@ -224,9 +226,9 @@ quic_node_fn (vlib_main_t * vm,
 
             /* Get connection ID */
             connection_id = 0;
-            /* Only true for current minq implementation (IETF draft 05)
-            * For newest IETF draft (08) HAS_ID meaning is reversed */
-            if (*type & HAS_ID && b0->current_length >= SIZE_ID) {
+            /* (Only true for current minq implementation (IETF draft 05))
+            * Is now following IETF draft (10). If C == 0, ID is present */
+            if (!(*type & HAS_ID) && b0->current_length >= SIZE_ID) {
               u64 *temp_id = vlib_buffer_get_current(b0);
               connection_id = clib_net_to_host_u64(*temp_id);
 
@@ -270,16 +272,10 @@ quic_node_fn (vlib_main_t * vm,
                 break;
 
               default:
-                goto skip_packet;
+                // packet number ignored for now!!!
+                packet_number = 0;
+                //goto skip_packet;
             }
-          }
-
-          u8 measurement;
-          if (PREDICT_TRUE(b0->current_length >= SIZE_QUIC_SPIN)) {
-            u8 *temp_m = vlib_buffer_get_current(b0);
-            measurement = *temp_m;
-          } else {
-            goto skip_packet;
           }
 
           quic_key_t kv;
@@ -319,9 +315,11 @@ quic_node_fn (vlib_main_t * vm,
                           clib_net_to_host_u16(udp0->src_port), *type);
 
           /* Do spinbit RTT estimation */
-          update_rtt_estimate(vm, session, vlib_time_now (vm),
-                          clib_net_to_host_u16(udp0->src_port), measurement,
-                          packet_number); 
+          //update_rtt_estimate(vm, session, vlib_time_now (vm),
+          //                clib_net_to_host_u16(udp0->src_port), measurement,
+          //                packet_number);
+          update_rtt_estimate_10(vm, session, vlib_time_now (vm),
+                          clib_net_to_host_u16(udp0->src_port), spin, packet_number);
 
           /* Currently only ACTIVE and ERROR state
            * The timer is just used to free memory if flow is no longer observed */
@@ -348,10 +346,6 @@ quic_node_fn (vlib_main_t * vm,
             t->type = *type & QUIC_TYPE; 
             t->id = connection_id;
             t->number = packet_number;
-            t->spin_2 = measurement & TWO_BIT_SPIN;
-            t->spin_1 = measurement & ONE_BIT_SPIN;
-            t->valid = measurement & VALID_BIT;
-            t->block = measurement & BLOCKING_BIT;
           }
         }
 

@@ -339,9 +339,12 @@ void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 measurement, u32 packet_number);
 void update_handshake_rtt(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, u8 packet_type);
+void update_rtt_estimate_10(vlib_main_t * vm, quic_session_t * session, f64 now,
+                u16 src_port, bool bit, u32 packet_number);
 
 void clean_session(u32 index);
 void quic_printf (int flush, char *fmt, ...);
+void quic_printf_2 (int flush, char *fmt, ...);
 
 /**
  * @brief get quic session for index

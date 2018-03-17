@@ -308,6 +308,65 @@ void update_handshake_rtt(vlib_main_t * vm, quic_session_t * session, f64 now,
       }
 }
 
+void update_rtt_estimate_10(vlib_main_t * vm, quic_session_t * session, f64 now,
+                u16 src_port, bool spin, u32 packet_number) {
+
+    basic_spin_observer_t *observer = &(session->basic_spinbit_observer);
+
+    /* if this is a packet from the SERVER */
+    if (src_port == QUIC_PORT) {
+      if (observer->spin_server != spin){
+        observer->spin_server = spin;
+        observer->rtt_server = now - observer->time_last_spin_server;
+        observer->new_server = true;
+        session->updated_rtt = true;
+        observer->time_last_spin_server = now;
+        //vlib_cli_output(vm, "[TIME:] %.*lf [BASIC-RTT-SERVER:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+        //                  now, 9, observer->rtt_server, 9, spin ? 1 : 0, packet_number);
+      }
+    /* if this is a packet from the CLIENT */
+    } else {
+      if (observer->spin_client != spin){
+        observer->spin_client = spin;
+        observer->new_client = true;
+        session->updated_rtt = true;
+        observer->rtt_client = now - observer->time_last_spin_client;
+        observer->time_last_spin_client = now;
+        //vlib_cli_output(vm, "[TIME:] %.*lf [BASIC-RTT-CLIENT:] %.*lf, [SPIN:] %u, [PN:] %u\n",
+        //                  now, 9, observer->rtt_client, 9, spin ? 1 : 0, packet_number);
+      }
+    }
+
+
+  if (session->pkt_count == 1){
+    quic_printf(0, "%s, %s, %s", "time", "pn", "host");
+    quic_printf(0, ", %s, %s", "basic_data", "basic_new");
+    quic_printf(0, "\n");
+  }
+
+  if (session->updated_rtt) {
+    /* Now print the actual data */
+    if (src_port == QUIC_PORT) {
+      quic_printf(0, "%.*lf, %u, %s", now, TIME_PRECISION, packet_number, "server");
+      quic_printf(0, ", %.*lf, %d", session->basic_spinbit_observer.rtt_server, RTT_PRECISION,
+                                    session->basic_spinbit_observer.new_server);
+      quic_printf(1, "\n");
+
+      session->basic_spinbit_observer.new_server = false;
+
+    } else {
+      quic_printf(0, "%.*lf, %u, %s", now, TIME_PRECISION, packet_number, "client");
+      quic_printf(0, ", %.*lf, %d", session->basic_spinbit_observer.rtt_client, RTT_PRECISION,
+                                    session->basic_spinbit_observer.new_client);
+      quic_printf(1, "\n");
+
+      session->basic_spinbit_observer.new_client = false;
+    }
+  }
+
+}
+
+
 /**
  * @brief update RTT estimations.
  * Currently, only 1-bit spin and valid bit implemented
@@ -988,6 +1047,42 @@ quic_printf (int flush, char *fmt, ...)
 
   vec_free (s);
 }
+
+/* Output to CLI / stdout, this is a modified copy of `vlib_cli_output` */
+void
+quic_printf_2 (int flush, char *fmt, ...)
+{
+  // vlib_process_t *cp = vlib_get_current_process (vm);
+  va_list va;
+  u8 *s;
+
+  static FILE *output_file = NULL;
+
+  va_start (va, fmt);
+  s = va_format (0, fmt, &va);
+  va_end (va);
+
+  ///* Terminate with \n if not present. */
+  //if (vec_len (s) > 0 && s[vec_len (s) - 1] != '\n')
+  //  vec_add1 (s, '\n');
+
+  //if ((!cp) || (!cp->output_function))
+
+  if (output_file == NULL){
+    output_file = fopen("/tmp/quic_printf_2.out", "w");
+  }
+  fprintf(output_file, "%s", s);
+
+  if (flush){
+    fflush(output_file);
+  }
+  //dprintf(42, "%s", s);
+  //else
+  //  cp->output_function (cp->output_function_arg, s, vec_len (s));
+
+  vec_free (s);
+}
+
 
 /**
  * @brief Initialize the quic plugin.
