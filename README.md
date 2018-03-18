@@ -1,4 +1,4 @@
-# PLUS Middlebox using FD.io/VPP
+# QUIC spin bit observer using FD.io/VPP
 ## Installation
 If not already available, install *Vagrant* and *VirtualBox* on your machine. 
 Go to the Vagrant directory and execute:
@@ -54,9 +54,9 @@ Add one interface to the QUIC plugin, such that it analyzes traffic coming from 
 
 `sudo vppctl quic host-vpp1`
 
-Replay a pcap file with 250 QUIC packets:
+Replay a pcap file with 3 QUIC flows (40ms, 50ms, 60ms RTT; spin bit in short headers at 0x10):
 
-`sudo ip netns exec vpp1 tcpreplay --intf1=veth_vpp1 /home/vagrant/plus-mb/pcap/delay-10-ms-first-250-pkt.pcap`
+`sudo ip netns exec vpp1 tcpreplay --intf1=veth_vpp1 /home/vagrant/plus-mb/pcap/3_flows_QUIC_spin_bit.pcap`
 
 (Look at the current QUIC stats: `sudo vppctl quic stat`)
 
@@ -65,6 +65,7 @@ The plugin prints all the RTT estimations from the spin bit to `/tmp/quic_printf
 ## Known limitations
 * Hacky code
 * Currently only support for 2048 concurrent flows
+* QUIC plugin node directly placed after input, packets will be dropped afterwards
 
 ## Compile the plugin
 During the Vagrant provision, the plugins are automatically compiled and added to VPP.
