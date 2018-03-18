@@ -289,6 +289,10 @@ quic_node_fn (vlib_main_t * vm,
           if (PREDICT_FALSE(!session)) {
             /* Create new session */  
             u32 index = create_session();
+            /* Bad workaround, fix */
+            if (index == 9999) {
+                goto skip_packet;
+            }
             session = get_quic_session(index);
 
             /* Save key for reverse lookup */

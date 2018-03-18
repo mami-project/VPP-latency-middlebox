@@ -932,6 +932,10 @@ void update_state(quic_key_t * kv_in, uword new_state)
 u32 create_session() {
   quic_session_t * session;
   quic_main_t * pm = &quic_main;
+  if (pm->active_flows == 2048) {
+    /* Bad workaround, add better error handling */
+    return 9999;
+  }
   pm->active_flows ++;
   pm->total_flows ++;
   pool_get (pm->session_pool, session);
