@@ -1,4 +1,8 @@
 # PLUS Middlebox using FD.io/VPP
+
+## IETF hackathon code
+Checkout branch *quic_IETF_hackathon*
+
 ## Installation
 If not already available, install *Vagrant* and *VirtualBox* on your machine. 
 Go to the Vagrant directory and execute:
