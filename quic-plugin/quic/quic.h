@@ -43,28 +43,6 @@
 #ifndef __included_quic_h__
 #define __included_quic_h__
 
-/* Quic handshake states for handshake RTT measurement */
-#define QUIC_HANDSHAKE_IDLE               0
-#define QUIC_HANDSHAKE_CLIENT_INITIAL     1
-#define QUIC_HANDSHAKE_SERVER_CLEARTEXT   2
-#define QUIC_HANDSHAKE_CLIENT_CLEARTEXT   3
-
-/* Quic header types */
-#define QUIC_PACKET_LONG_VERSION_NEGOTIATION      0x81
-#define QUIC_PACKET_LONG_CLIENT_INITIAL           0x82
-#define QUIC_PACKET_LONG_SERVER_STATELESS_RETRY   0x83
-#define QUIC_PACKET_LONG_SERVER_CLEARTEXT         0x84
-#define QUIC_PACKET_LONG_CLIENT_CLEARTEXT         0x85
-#define QUIC_PACKET_LONG_0_RTT_PROTECTED          0x86
-#define QUIC_PACKET_LONG_1_RTT_PROTECTED_PHASE_1  0x87
-#define QUIC_PACKET_LONG_1_RTT_PROTECTED_PHASE_2  0x88
-#define QUIC_PACKET_SHORT_1_OCTET                 0x01
-#define QUIC_PACKET_SHORT_2_OCTET                 0x02
-#define QUIC_PACKET_SHORT_4_OCTET                 0x03
-
-#define QUIC_PACKET_SHORT_MASK                    0b10011111
-#define QUIC_PACKET_LONG_MASK                     0b11111111
-
 #include <vnet/vnet.h>
 #include <vnet/ip/ip.h>
 #include <vnet/ethernet/ethernet.h>
@@ -106,15 +84,6 @@ typedef enum {
 
 #define SPIN_NOT_KNOWN 255
 
-#define TWO_BIT_SPIN 0xc0
-#define ONE_BIT_SPIN 0x40
-#define VALID_BIT 0x20
-#define BLOCKING_BIT 0x10
-#define TWO_BIT_SPIN_OFFSET 6
-#define VALID_EDGE_BIT 0x01
-#define STATUS_MASK 0x0c
-#define STATUS_SHIFT 2
-
 typedef struct {
   u8 spin_client;
   u8 spin_server;
@@ -125,131 +94,6 @@ typedef struct {
   bool new_client;
   bool new_server;
 } basic_spin_observer_t;
-
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  u32 pn_client;
-  u32 pn_server;
-  bool new_client;
-  bool new_server;
-} pn_spin_observer_t;
-
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  bool valid_client;
-  bool valid_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  u32 pn_client;
-  u32 pn_server;
-  bool new_client;
-  bool new_server;
-} pn_valid_spin_observer_t;
-
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  bool valid_client;
-  bool valid_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  bool new_client;
-  bool new_server;
-} valid_spin_observer_t;
-
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  bool valid_client;
-  bool valid_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  u32 pn_client;
-  u32 pn_server;
-  bool new_client;
-  bool new_server;
-} pn_valid_edge_spin_observer_t;
-
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  bool valid_client;
-  bool valid_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  bool new_client;
-  bool new_server;
-} valid_edge_spin_observer_t;
-
-#define STATUS_INVALID      0b00
-#define STATUS_HANDSHAKE_1  0b01
-#define STATUS_HANDSHAKE_2  0b10
-#define STATUS_VALID        0b11
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  bool new_client;
-  bool new_server;
-} status_spin_observer_t;
-
- typedef  struct {
-  u8 spin_client;
-  u8 spin_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  bool new_client;
-  bool new_server;
-} two_bit_spin_observer_t;
-
-#define STAT_HEUR_THRESHOLD 0.001
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client;
-  f64 rtt_server;
-  bool new_client;
-  bool new_server;
-} stat_heur_spin_observer_t;
-
-#define DYNA_HEUR_THRESHOLD 0.1
-#define DYNA_HEUR_HISTORY_SIZE 10
-#define DYNA_HEUR_MAX_REJECT 5
-typedef struct {
-  u8 spin_client;
-  u8 spin_server;
-  f64 time_last_spin_client;
-  f64 time_last_spin_server;
-  f64 rtt_client[DYNA_HEUR_HISTORY_SIZE];
-  f64 rtt_server[DYNA_HEUR_HISTORY_SIZE];
-  u8 index_client;
-  u8 index_server;
-  u8 rejected_client;
-  u8 rejected_server;
-  bool new_client;
-  bool new_server;
-} dyna_heur_spin_observer_t;
 
 /* State for each observed QUIC session */
 typedef struct
@@ -264,22 +108,9 @@ typedef struct
   u64 id;
 
   /* Handshake RTT estimation */
-  u8  handshake_state;
-  f64 handshake_start_time;
-  f64 handshake_rtt;
-  bool new_handshake_rtt;
 
   /* Data structures for the various spin bit observers */
   basic_spin_observer_t basic_spinbit_observer;
-  pn_spin_observer_t pn_spin_observer;
-  pn_valid_spin_observer_t pn_valid_spin_observer;
-  valid_spin_observer_t valid_spin_observer;
-  pn_valid_edge_spin_observer_t pn_valid_edge_spin_observer;
-  valid_edge_spin_observer_t valid_edge_spin_observer;
-  status_spin_observer_t status_spin_observer;
-  two_bit_spin_observer_t two_bit_spin_observer;
-  stat_heur_spin_observer_t stat_heur_spin_observer;
-  dyna_heur_spin_observer_t dyna_heur_spin_observer;
 
   bool updated_rtt;
 
@@ -335,10 +166,6 @@ void make_key(quic_key_t * kv, ip4_address_t * src_ip, ip4_address_t * dst_ip,
                 u16 src_p, u16 dst_p, u8 protocol);
 quic_session_t * get_session_from_key(quic_key_t * kv_in);
 u32 create_session();
-void update_rtt_estimate(vlib_main_t * vm, quic_session_t * session, f64 now,
-                u16 src_port, u8 measurement, u32 packet_number);
-void update_handshake_rtt(vlib_main_t * vm, quic_session_t * session, f64 now,
-                u16 src_port, u8 packet_type);
 void update_rtt_estimate_10(vlib_main_t * vm, quic_session_t * session, f64 now,
                 u16 src_port, bool bit, u32 packet_number);
 

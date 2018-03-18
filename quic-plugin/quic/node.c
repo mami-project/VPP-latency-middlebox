@@ -32,10 +32,7 @@ typedef struct {
   u8 type;
   u64 id;
   u32 number;
-  bool spin_2;
-  bool spin_1;
-  bool valid;
-  bool block;
+  bool spin;
 } quic_trace_t;
 
 /* packet trace format function */
@@ -53,9 +50,7 @@ static u8 * format_quic_trace (u8 * s, va_list * args)
   s = format (s, "  Current state: %s, C: %u, K: %u, type: %u\n",
                   stateNames[t->state], t->id_bit ? 1 : 0,
                   t->key_bit ? 1 : 0, t->type);
-  //s = format (s, "  Measurement byte: spin 2: %u, spin 1: %u, valid: %u, block: %u",
-  //                t->spin_2 ? 1 : 0, t->spin_1 ? 1 : 0, t->valid ? 1 : 0,
-  //                t->block ? 1 : 0);
+  s = format (s, "  Current spin bit value: %u", t->spin ? 1 : 0);
   return s;
 }
 
@@ -88,17 +83,19 @@ static char * quic_error_strings[] = {
 #define IS_LONG 0x80
 #define HAS_ID 0x40
 #define KEY_FLAG 0x20
+
+/* Spin bit replaces bit 0x10 in IETF draft 10 */
 #define SPIN_POSITION 0x10
-#define QUIC_TYPE 0x1F
+
+#define QUIC_TYPE 0x07
 #define SIZE_TYPE 1
-/* Only true for current minq implementation (IETF draft 05)
- * Newest IETF draft (08):
- * 8:  0x1F
- * 16: 0x1E
- * 32: 0x1D */
-#define P_NUMBER_8 0x01
-#define P_NUMBER_16 0x02
-#define P_NUMBER_32 0x03
+/* Based on IETF draft 10:
+ * 8:  0x0
+ * 16: 0x1
+ * 32: 0x2 */
+#define P_NUMBER_8 0xF
+#define P_NUMBER_16 0xE
+#define P_NUMBER_32 0xD
 
 #define SIZE_NUMBER_8 1
 #define SIZE_NUMBER_16 2
@@ -106,7 +103,6 @@ static char * quic_error_strings[] = {
 
 #define SIZE_ID 8
 #define SIZE_VERSION 4
-#define SIZE_QUIC_SPIN 1
 
 /* Timeout values (in 100ms) */
 #define TIMEOUT 360
@@ -171,7 +167,7 @@ quic_node_fn (vlib_main_t * vm,
         vlib_buffer_advance (b0, SIZE_ETHERNET);
         total_advance += SIZE_ETHERNET;
 
-      /* Get IP4 header */
+        /* Get IP4 header */
         ip4_header_t *ip0 = vlib_buffer_get_current(b0);
         vlib_buffer_advance (b0, SIZE_IP4);
         total_advance += SIZE_IP4;
@@ -314,14 +310,7 @@ quic_node_fn (vlib_main_t * vm,
           session->updated_rtt = false;
 
 
-          /* Do handshake RTT estimation */
-          update_handshake_rtt(vm, session, vlib_time_now (vm),
-                          clib_net_to_host_u16(udp0->src_port), *type);
-
           /* Do spinbit RTT estimation */
-          //update_rtt_estimate(vm, session, vlib_time_now (vm),
-          //                clib_net_to_host_u16(udp0->src_port), measurement,
-          //                packet_number);
           update_rtt_estimate_10(vm, session, vlib_time_now (vm),
                           clib_net_to_host_u16(udp0->src_port), spin, packet_number);
 
@@ -339,9 +328,10 @@ quic_node_fn (vlib_main_t * vm,
               break;
           }
             
-          /* If packet trace is active */
+          /* If packet trace is active and a short header */
           if (PREDICT_FALSE((node->flags & VLIB_NODE_FLAG_TRACE) 
-                            && (b0->flags & VLIB_BUFFER_IS_TRACED))) {
+                            && (b0->flags & VLIB_BUFFER_IS_TRACED)
+                            && !(*type & IS_LONG))) {
             /* Set correct trace value */
             quic_trace_t *t = vlib_add_trace (vm, node, b0, sizeof (*t));
             t->state = session->state;
@@ -350,6 +340,7 @@ quic_node_fn (vlib_main_t * vm,
             t->type = *type & QUIC_TYPE; 
             t->id = connection_id;
             t->number = packet_number;
+            t->spin = spin;
           }
         }
 
