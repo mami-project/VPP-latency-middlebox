@@ -107,11 +107,6 @@ typedef enum {
 #undef _
 } sup_protocols_t;
 
-/* The (single) IP of the VPP box */
-#define IP_MB 1483113042 // 1384277592 -> 82.130.102.88
-//#define DST_IP_MB 16777226 // 167772161 -> 10.0.0.1
-//#define SRC_IP_MB 1694498826 // 167772261 -> 10.0.0.101
-
 /* For output */
 #define TIME_PRECISION 8
 #define RTT_PRECISION 4
@@ -152,6 +147,7 @@ typedef struct {
   f64 time;
 } time_test_t;
 
+/* Structs for the different spin observers */
 typedef struct {
   u8 spin_client;
   u8 spin_server;
@@ -209,10 +205,9 @@ typedef struct {
   bool new_server;
 } dyna_heur_spin_observer_t;
 
+/* main QUIC observer struct */
 typedef struct {
   u64 id;
-  
-  // currently no handshake rtt
 
   /* Data structures for the various spin bit observers */
   basic_spin_observer_t basic_spin_observer;
@@ -221,6 +216,7 @@ typedef struct {
   dyna_heur_spin_observer_t dyna_heur_spin_observer;
 } quic_observer_t;
 
+/* structs for the different TCP TS observers */
 typedef struct { 
   f64 time_init_client;
   f64 time_init_server;
@@ -245,6 +241,7 @@ typedef struct {
   bool new_server;
 } timestamp_observer_all_RTT_t;
 
+/* main TCP observer struct */
 typedef struct {
   /* Data structures for the spinbit and timestamp observer */
   status_spin_observer_t status_spin_observer;
@@ -253,6 +250,7 @@ typedef struct {
   timestamp_observer_all_RTT_t ts_all_RTT_observer;
 } tcp_observer_t;
 
+/* struct for PLUS PSE/PSN observer */
 typedef struct {
   u32 psn_src;
   f64 time_src;
@@ -264,6 +262,7 @@ typedef struct {
   bool new_client;
 } plus_single_observer_t;
 
+/* main PLUS observer struct */
 typedef struct {
   u8 state;
   /* PSN which moved state to ASSOCIATING */

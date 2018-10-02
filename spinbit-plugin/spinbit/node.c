@@ -42,7 +42,7 @@ static u8 * format_spinbit_trace (u8 * s, va_list * args) {
   
   spinbit_trace_t * t = va_arg (*args, spinbit_trace_t *);
 
-  const char * typeNames[] = {"QUIC", "PLUS", "TCP"};
+  const char * typeNames[] = {"TCP", "QUIC", "PLUS"};
 
   /* show SPINBIT packet */
   s = format (s, "SPINBIT packet: type: %s\n", typeNames[t->type]);
@@ -169,7 +169,6 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
       u8 total_advance = 0;
       bool make_measurement = true;
       bool is_udp = true;
-      u8 flow_type = 0;
 
       /* Contains TCP, QUIC or PLUS session */
       spinbit_session_t * session = NULL;
@@ -205,8 +204,6 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
             u64 connection_id;
             u32 packet_number, CLIB_UNUSED(spinbit_version);
             u8 *type = vlib_buffer_get_current(b0);
-
-            flow_type = 0;
 
             /* LONG HEADER */
             /* We expect most packets to have the short header */
@@ -359,7 +356,6 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               vlib_buffer_advance (b0, SIZE_PLUS);
               total_advance += SIZE_PLUS;
               if (PREDICT_TRUE((plus0->magic_and_flags & MAGIC_MASK) == MAGIC)) {
-                flow_type = 1;
                 spinbit_key_t kv;
                 make_plus_key(&kv, ip0->src_address.as_u32, ip0->dst_address.as_u32,
                                 udp0->src_port, udp0->dst_port, ip0->protocol,
@@ -435,8 +431,6 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
           /* TCP spin and TS */
           if (ip0->protocol == TCP_PROTOCOL && b0->current_length >= SIZE_TCP) {
                 
-            flow_type = 2;
-
             /* Get TCP header */
             tcp0 = vlib_buffer_get_current(b0);
             vlib_buffer_advance (b0, SIZE_TCP);
@@ -565,7 +559,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
           }
           t->new_src_ip = clib_net_to_host_u32(ip0->src_address.as_u32);
           t->new_dst_ip = clib_net_to_host_u32(ip0->dst_address.as_u32);
-          t->type = flow_type;
+          t->type = session->p_type;
           t->pkt_count = session->pkt_count;
         }
 
