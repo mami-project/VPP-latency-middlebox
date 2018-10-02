@@ -26,16 +26,12 @@ vlib_node_registration_t spinbit_node;
 
 /* Used to display SPINBIT packets in the packet trace */
 typedef struct {
-  u8 state;
-  bool id_bit;
-  bool key_bit;
-  u8 type;
-  u64 id;
-  u32 number;
-  bool spin_2;
-  bool spin_1;
-  bool valid;
-  bool block;
+  u16 src_port;
+  u16 dst_port;
+  u32 new_src_ip;
+  u32 new_dst_ip;
+  u16 type;
+  u32 pkt_count;
 } spinbit_trace_t;
 
 /* packet trace format function */
@@ -45,17 +41,15 @@ static u8 * format_spinbit_trace (u8 * s, va_list * args) {
   CLIB_UNUSED (vlib_node_t * node) = va_arg (*args, vlib_node_t *);
   
   spinbit_trace_t * t = va_arg (*args, spinbit_trace_t *);
-  
-  /* Show SPINBIT packet */
-  s = format (s, "SPINBIT packet: ID: %lu, packet number: %u\n",
-              t->id, t->number);
-  const char * stateNames[] = {"ACTIVE", "ERROR"};
-  s = format (s, "  Current state: %s, C: %u, K: %u, type: %u\n",
-              stateNames[t->state], t->id_bit ? 1 : 0,
-              t->key_bit ? 1 : 0, t->type);
-  s = format (s, "  Measurement byte: spin 2: %u, spin 1: %u, valid: %u, block: %u",
-              t->spin_2 ? 1 : 0, t->spin_1 ? 1 : 0,
-              t->valid ? 1 : 0, t->block ? 1 : 0);
+
+  const char * typeNames[] = {"QUIC", "PLUS", "TCP"};
+
+  /* show SPINBIT packet */
+  s = format (s, "SPINBIT packet: type: %s\n", typeNames[t->type]);
+  s = format (s, "   src port: %u, dst port: %u\n", t->src_port, t->dst_port);
+  s = format (s, "   (new) src ip: %u, (new) dst ip: %u\n", t->new_src_ip, t->new_dst_ip);
+  s = format (s, "   pkt number in flow: %u\n", t->pkt_count);
+
   return s;
 }
 
@@ -174,9 +168,14 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
       /* Keeps track of all the buffer movement */
       u8 total_advance = 0;
       bool make_measurement = true;
+      bool is_udp = true;
+      u8 flow_type = 0;
 
       /* Contains TCP, QUIC or PLUS session */
       spinbit_session_t * session = NULL;
+
+      udp_header_t * udp0 = NULL;
+      tcp_header_t * tcp0 = NULL;
 
       if (PREDICT_TRUE(b0->current_length >= SIZE_IP4)) {
 
@@ -193,9 +192,10 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
 
         if (ip0->protocol == UDP_PROTOCOL && b0->current_length >= SIZE_UDP) {
           /* Get UDP header */
-          udp_header_t *udp0 = vlib_buffer_get_current(b0);
+          udp0 = vlib_buffer_get_current(b0);
           vlib_buffer_advance (b0, SIZE_UDP);
           total_advance += SIZE_UDP;
+          is_udp = true;
 
           /* QUIC "detection", see if either endpoint is on the QUIC_PORT */
           if (is_quic(udp0->src_port, udp0->dst_port) &&
@@ -205,6 +205,8 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
             u64 connection_id;
             u32 packet_number, CLIB_UNUSED(spinbit_version);
             u8 *type = vlib_buffer_get_current(b0);
+
+            flow_type = 0;
 
             /* LONG HEADER */
             /* We expect most packets to have the short header */
@@ -340,61 +342,24 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               
               session->key_reverse = kv.as_u64;
               
-              session->pkt_count = 0;
+              session->pkt_count = 1;
 
               start_timer(session, TIMEOUT);
             }
-
-            if (!ip_nat_translation(ip0, session->init_src_ip, session->new_dst_ip)) {
-              goto skip_packet;
-            }
-            
-            /* Packets to server */
-            //if (ip0->src_address.as_u32 == session->init_src_ip) {
-            //  ip0->src_address.as_u32 = IP_MB;
-            //  ip0->dst_address.as_u32 = session->new_dst_ip;
-            //} else {
-              /* Packets to client */
-            //  if (ip0->src_address.as_u32 == session->new_dst_ip) {
-            //    ip0->src_address.as_u32 = IP_MB;
-            //    ip0->dst_address.as_u32 = session->init_src_ip;
-            //  } else {
-            //    goto skip_packet;
-            //  }
-            //}
-
-            /* Update UDP and IP checksum */
-            udp0->checksum = 0;
-            udp0->checksum = ip4_tcp_udp_compute_checksum (vm, b0, ip0); 
-            ip0->checksum = ip4_header_checksum (ip0);
-
-            /* Keep track of packets for each flow */
-            session->pkt_count ++;
 
             /* Do spinbit RTT estimation */
             update_quic_rtt_estimate(vm, session->quic, vlib_time_now (vm),
                           udp0->src_port, session->init_src_port, measurement,
                           packet_number, session->pkt_count);
-            
-            /* Currently only ACTIVE and ERROR state
-             * The timer is just used to free memory if flow is no longer observed */
-            switch (session->state) {  
-              case SPINBIT_STATE_ACTIVE:
-                update_timer(session, TIMEOUT);
-              break;
 
-              case SPINBIT_STATE_ERROR:
-              break;
-
-              default:
-              break;
-            }
+          /* PLUS packet */
           } else {
             if (b0->current_length >= SIZE_PLUS) {
               plus_header_t *plus0 = vlib_buffer_get_current(b0);
               vlib_buffer_advance (b0, SIZE_PLUS);
               total_advance += SIZE_PLUS;
               if (PREDICT_TRUE((plus0->magic_and_flags & MAGIC_MASK) == MAGIC)) {
+                flow_type = 1;
                 spinbit_key_t kv;
                 make_plus_key(&kv, ip0->src_address.as_u32, ip0->dst_address.as_u32,
                                 udp0->src_port, udp0->dst_port, ip0->protocol,
@@ -435,33 +400,12 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
                   
                   session->key_reverse = kv.as_u64;
                   
-                  session->pkt_count = 0;
+                  session->pkt_count = 1;
 
                   start_timer(session, TIMEOUT);
                 }
- 
-                if (!ip_nat_translation(ip0, session->init_src_ip, session->new_dst_ip)) {
-                  goto skip_packet;
-                }
 
-                /* Packets to server */
-                //if (ip0->src_address.as_u32 == session->init_src_ip) {
-                //  ip0->src_address.as_u32 = IP_MB;
-                //  ip0->dst_address.as_u32 = session->new_dst_ip;
-                //} else {
-                  /* Packets to client */
-                //  if (ip0->src_address.as_u32 == session->new_dst_ip) {
-                //    ip0->src_address.as_u32 = IP_MB;
-                //    ip0->dst_address.as_u32 = session->init_src_ip;
-                //  } else {
-                //    goto skip_packet;
-                //  }
-                //}
-
-                /* Keep track of packets for each flow */
-                session->pkt_count ++; 
-
-                /* Do spinbit RTT estimation */
+                /* Do PLUS PSN PSE RTT estimation */
                 update_plus_rtt_estimate(vm, session->plus, vlib_time_now (vm),
                               udp0->src_port, session->init_src_port,
                               clib_net_to_host_u32(plus0->PSN),
@@ -469,7 +413,6 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
                               clib_net_to_host_u64(plus0->CAT),
                               session->pkt_count);
 
-                /* TODO: move to separate function/node */
                 /* Handle extended header */
                 plus_ext_hop_c_h_t *plus_ext_hop_c0;
                 
@@ -484,82 +427,21 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
                     plus_ext_hop_c0->PCF_hop_c += 1;
                   }
                 }
-
-                /* Moved to the end, in case we have to change an extended PLUS header */
-                udp0->checksum = 0;
-                udp0->checksum = ip4_tcp_udp_compute_checksum (vm, b0, ip0); 
-                ip0->checksum = ip4_header_checksum (ip0);
                 
-                switch (session->state) {  
-                  case SPINBIT_STATE_P_ZERO:
-                    session->state = SPINBIT_STATE_P_UNIFLOW;
-                    start_timer(session, TO_IDLE);
-                    /* Save direction for future state transitions */
-                    session->init_src_ip = ip0->src_address.as_u32;
-                  break;
-
-                  case SPINBIT_STATE_P_UNIFLOW:
-                    update_timer(session, TO_IDLE);
-                    
-                    /* Packet observation in other direction */
-                    if (session->init_src_ip != ip0->src_address.as_u32) {
-                      session->state = SPINBIT_STATE_P_ASSOCIATING;
-                      session->plus->psn_associating = clib_net_to_host_u32(plus0->PSN);
-                    }
-                    break;
-
-                  case SPINBIT_STATE_P_ASSOCIATING:
-                    update_timer(session, TO_IDLE);
-                    
-                    /* Confirmation */
-                    if (session->init_src_ip == ip0->src_address.as_u32
-                                      && comes_after_u32(
-                                            clib_net_to_host_u32(plus0->PSE),
-                                            session->plus->psn_associating)) {
-                      session->state = SPINBIT_STATE_P_ASSOCIATED;
-                    }
-                    break;
-
-                  case SPINBIT_STATE_P_ASSOCIATED:
-                    update_timer(session, TO_ASSOCIATED);
-
-                    /* Unlikely that the flow ends */
-                    if (PREDICT_FALSE(plus0->magic_and_flags & STOP)) {
-                      session->state = SPINBIT_STATE_P_STOPWAIT;
-                      session->init_src_ip = ip0->src_address.as_u32;
-                      session->plus->psn_stopwait = clib_net_to_host_u32(plus0->PSN);
-                    }
-                    break;
-
-                  case SPINBIT_STATE_P_STOPWAIT:
-                    update_timer(session, TO_ASSOCIATED);
-
-                    /* Stop bit in other direction and matching PSE value */
-                    if (plus0->magic_and_flags & STOP && session->init_src_ip !=
-                             ip0->src_address.as_u32 && session->plus->psn_stopwait ==
-                             clib_net_to_host_u32(plus0->PSE)) {
-                      /* Timer is not reset */
-                      update_timer(session, TO_STOP);
-                      session->state = SPINBIT_STATE_P_STOPPING;
-                    }
-                    break;
-                    
-                  case SPINBIT_STATE_P_STOPPING:
-                    break;
-                    
-                  default:
-                    break;
-                }
               }
             }
           }
         } else {
+          /* TCP spin and TS */
           if (ip0->protocol == TCP_PROTOCOL && b0->current_length >= SIZE_TCP) {
                 
+            flow_type = 2;
+
             /* Get TCP header */
-            tcp_header_t *tcp0 = vlib_buffer_get_current(b0);
+            tcp0 = vlib_buffer_get_current(b0);
             vlib_buffer_advance (b0, SIZE_TCP);
             total_advance += SIZE_TCP;
+            is_udp = false;
 
             /* For timestamp values */
             u32 tsval = 0;
@@ -576,12 +458,9 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               make_measurement = false;             
             }
 
-
-            /* VEC data from reserved space y*/
+            /* VEC data from reserved space */
             u8 measurement = (tcp0->data_offset_and_reserved & TCP_SPINBIT_MASK)
                     >> TCP_SPINBIT_SHIFT;
-
-            //tcp_printf(1, "VEC: %d\n", measurement);
 
             spinbit_key_t kv;
             make_key(&kv, ip0->src_address.as_u32, ip0->dst_address.as_u32,
@@ -620,35 +499,10 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               
               session->key_reverse = kv.as_u64;
               
-              session->pkt_count = 0;
+              session->pkt_count = 1;
 
               start_timer(session, TIMEOUT);
             }
-
-            if (!ip_nat_translation(ip0, session->init_src_ip, session->new_dst_ip)) {
-              goto skip_packet;
-            }
-
-            /* Packets to server */
-            //if (ip0->src_address.as_u32 == session->init_src_ip) {
-            //  ip0->src_address.as_u32 = IP_MB;
-            //  ip0->dst_address.as_u32 = session->new_dst_ip;
-            //} else {
-              /* Packets to client */
-            //  if (ip0->src_address.as_u32 == session->new_dst_ip) {
-            //    ip0->src_address.as_u32 = IP_MB;
-            //    ip0->dst_address.as_u32 = session->init_src_ip;
-            //  } else {
-            //    goto skip_packet;
-            //  }
-            //}
-
-            /* Update TCP and IP checksum*/
-            tcp0->checksum = 0;
-            tcp0->checksum = ip4_tcp_udp_compute_checksum (vm, b0, ip0); 
-            ip0->checksum = ip4_header_checksum (ip0);
-
-            session->pkt_count ++;
 
             /* Do timestamp and spinbit RTT estimation */
             if (PREDICT_TRUE(make_measurement)) {
@@ -657,39 +511,62 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
                         tsval, tsecr, session->pkt_count,
                         clib_net_to_host_u32(tcp0->seq_number));
             }
-            /* Currently only ACTIVE and ERROR state
-             * The timer is just used to free memory if flow is no longer observed */
-            switch (session->state) {  
-              case SPINBIT_STATE_ACTIVE:
-                update_timer(session, TIMEOUT);
-              break;
-
-              case SPINBIT_STATE_ERROR:
-              break;
-
-              default:
-              break;
-            }
           }
+        }
+
+        if (!session) {
+          goto skip_packet;
+        }
+
+        /* Keep track of packets for each flow */
+        session->pkt_count ++;
+
+        /* NAT-like IP translation */
+        if (!ip_nat_translation(ip0, session->init_src_ip, session->new_dst_ip)) {
+          goto skip_packet;
+        }
         
-          // TODO: adapt! 
-          /* If packet trace is active */
-          // if (PREDICT_FALSE((node->flags & VLIB_NODE_FLAG_TRACE) 
-          //     && (b0->flags & VLIB_BUFFER_IS_TRACED))) {
-            
-            /* Set correct trace value */
-            //spinbit_trace_t *t = vlib_add_trace (vm, node, b0, sizeof (*t));
-            //t->state = session->state;
-            //t->id_bit = *type & HAS_ID;
-            //t->key_bit = *type & KEY_FLAG;
-            //t->type = *type & SPINBIT_TYPE; 
-            //t->id = connection_id;
-            //t->number = packet_number;
-            //t->spin_2 = measurement & TWO_BIT_SPIN;
-            //t->spin_1 = measurement & ONE_BIT_SPIN;
-            //t->valid = measurement & VALID_BIT;
-            //t->block = measurement & BLOCKING_BIT;
-          //}
+        /* Update UDP and IP checksum */
+        if (is_udp) {
+          udp0->checksum = 0;
+          udp0->checksum = ip4_tcp_udp_compute_checksum (vm, b0, ip0);
+        } else {
+          tcp0->checksum = 0;
+          tcp0->checksum = ip4_tcp_udp_compute_checksum (vm, b0, ip0); 
+        }
+        ip0->checksum = ip4_header_checksum (ip0);
+
+        /* Currently only ACTIVE and ERROR state
+         * The timer is just used to free memory if flow is no longer observed
+         * PLUS states not implemented at the moment */
+        switch ((spinbit_state_t) session->state) {
+          case SPINBIT_STATE_ACTIVE:
+            update_timer(session, TIMEOUT);
+          break;
+
+          case SPINBIT_STATE_ERROR:
+          break;
+
+          default:
+          break;
+        }
+
+        /* If packet trace is active */
+        if (PREDICT_FALSE((node->flags & VLIB_NODE_FLAG_TRACE) 
+            && (b0->flags & VLIB_BUFFER_IS_TRACED))) {
+          
+          spinbit_trace_t *t = vlib_add_trace (vm, node, b0, sizeof (*t));
+          if (is_udp) {
+            t->src_port = clib_net_to_host_u16(udp0->src_port);
+            t->dst_port = clib_net_to_host_u16(udp0->dst_port);
+          } else {
+            t->src_port = clib_net_to_host_u16(tcp0->src_port);
+            t->dst_port = clib_net_to_host_u16(tcp0->dst_port);
+          }
+          t->new_src_ip = clib_net_to_host_u32(ip0->src_address.as_u32);
+          t->new_dst_ip = clib_net_to_host_u32(ip0->dst_address.as_u32);
+          t->type = flow_type;
+          t->pkt_count = session->pkt_count;
         }
 
         /* Move buffer pointer back such that next node gets expected position */
@@ -721,8 +598,8 @@ VLIB_REGISTER_NODE (spinbit_node) = {
 
   .n_next_nodes = SPINBIT_N_NEXT,
 
-  /* Next node is the ethernet-input node */
+  /* Next node is the ip4-lookup node */
   .next_nodes = {
-    [IP4_LOOKUP] = "ip4-lookup", //"ethernet-input",
+    [IP4_LOOKUP] = "ip4-lookup",
   },
 };
