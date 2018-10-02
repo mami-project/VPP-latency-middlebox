@@ -572,7 +572,6 @@ bool pn_spinbit_estimate(vlib_main_t * vm, pn_spin_observer_t *observer,
 bool status_estimate(vlib_main_t * vm, status_spin_observer_t *observer,
       f64 now, u16 src_port, u16 init_src_port, bool spin, u8 status) {
   bool update = false;
-  //tcp_printf(1, "VEC: %u spin: %d\n", status, spin);
   /* if this is a packet from the SERVER */
   if (src_port != init_src_port) {
     /* check if arrived in order and has different spin */
@@ -610,7 +609,6 @@ bool status_estimate(vlib_main_t * vm, status_spin_observer_t *observer,
 bool vec_ne_zero_estimate(vlib_main_t * vm, status_spin_observer_t *observer,
       f64 now, u16 src_port, u16 init_src_port, bool spin, u8 status) {
   bool update = false;
-  //tcp_printf(1, "VEC: %u spin: %d\n", status, spin);
   /* if this is a packet from the SERVER */
   if (src_port != init_src_port) {
     /* check if arrived in order and has different spin */
@@ -765,7 +763,7 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->ts_one_RTT_observer.rtt_server);
       tcp_printf(0, ",%d", session->ts_one_RTT_observer.new_server);
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->ts_all_RTT_observer.rtt_server);
-      tcp_printf(0, ",%d,%lu", session->ts_all_RTT_observer.new_server);
+      tcp_printf(0, ",%d", session->ts_all_RTT_observer.new_server);
       tcp_printf(0, ",%lu", hash_elts(session->ts_all_RTT_observer.hash_init_client) +
                  hash_elts(session->ts_all_RTT_observer.hash_init_server) +
                  hash_elts(session->ts_all_RTT_observer.hash_ack_client) +
