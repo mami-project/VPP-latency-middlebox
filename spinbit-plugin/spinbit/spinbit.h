@@ -110,6 +110,7 @@ typedef enum {
 /* For output */
 #define TIME_PRECISION 8
 #define RTT_PRECISION 4
+#define STAT_PRECISION 8
 
 #define SPIN_NOT_KNOWN 255
 

@@ -155,37 +155,37 @@ u8 * format_sessions(u8 *s, va_list *args) {
       case P_TCP:
         s = format(s, "TCP: observed packets: %u\n", session->pkt_count);
         s = format(s, "VEC (client, server): %.*lfs %.*lfs\n",
-                   session->tcp->status_spin_observer.rtt_client, 9,
-                   session->tcp->status_spin_observer.rtt_server, 9);
+                   STAT_PRECISION, session->tcp->status_spin_observer.rtt_client,
+                   STAT_PRECISION, session->tcp->status_spin_observer.rtt_server);
         s = format(s, "TS single (client, server): %.*lfs %.*lfs\n",
-                   session->tcp->ts_one_RTT_observer.rtt_client, 9,
-                   session->tcp->ts_one_RTT_observer.rtt_server, 9);
+                   STAT_PRECISION, session->tcp->ts_one_RTT_observer.rtt_client,
+                   STAT_PRECISION, session->tcp->ts_one_RTT_observer.rtt_server);
         s = format(s, "TS all (client, server): %.*lfs %.*lfs\n",
-                   session->tcp->ts_all_RTT_observer.rtt_client, 9,
-                   session->tcp->ts_all_RTT_observer.rtt_server, 9);
+                   STAT_PRECISION, session->tcp->ts_all_RTT_observer.rtt_client,
+                   STAT_PRECISION, session->tcp->ts_all_RTT_observer.rtt_server);
       break;
       
       case P_QUIC:
         s = format(s, "QUIC: observed packets: %u\n", session->pkt_count);
         s = format(s, "Spin basic (client, server): %.*lfs %.*lfs\n",
-                   session->quic->basic_spin_observer.rtt_client, 9,
-                   session->quic->basic_spin_observer.rtt_server, 9);
+                   STAT_PRECISION, session->quic->basic_spin_observer.rtt_client,
+                   STAT_PRECISION, session->quic->basic_spin_observer.rtt_server);
         s = format(s, "Spin pn (client, server): %.*lfs %.*lfs\n",
-                   session->quic->pn_spin_observer.rtt_client, 9,
-                   session->quic->pn_spin_observer.rtt_server, 9);
+                   STAT_PRECISION, session->quic->pn_spin_observer.rtt_client,
+                   STAT_PRECISION, session->quic->pn_spin_observer.rtt_server);
         s = format(s, "VEC (client, server): %.*lfs %.*lfs\n",
-                   session->quic->status_spin_observer.rtt_client, 9,
-                   session->quic->status_spin_observer.rtt_server, 9);
+                   STAT_PRECISION, session->quic->status_spin_observer.rtt_client,
+                   STAT_PRECISION, session->quic->status_spin_observer.rtt_server);
         s = format(s, "Spin heur (client, server): %.*lfs %.*lfs\n",
-                   session->quic->dyna_heur_spin_observer.rtt_client[session->quic->dyna_heur_spin_observer.index_client], 9,
-                   session->quic->dyna_heur_spin_observer.rtt_server[session->quic->dyna_heur_spin_observer.index_server], 9);
+                   STAT_PRECISION, session->quic->dyna_heur_spin_observer.rtt_client[session->quic->dyna_heur_spin_observer.index_client],
+                   STAT_PRECISION, session->quic->dyna_heur_spin_observer.rtt_server[session->quic->dyna_heur_spin_observer.index_server]);
       break;
       
       case P_PLUS:
         s = format(s, "PLUS: observed packets: %u\n", session->pkt_count);
         s = format(s, "PSN/PSE (client, server): %.*lfs %.*lfs\n",
-                   session->plus->plus_single_observer.rtt_src, 9,
-                   session->plus->plus_single_observer.rtt_dst, 9);
+                   STAT_PRECISION, session->plus->plus_single_observer.rtt_src,
+                   STAT_PRECISION, session->plus->plus_single_observer.rtt_dst);
       break;
 
       default:
@@ -223,8 +223,6 @@ static clib_error_t * spinbit_add_port_fn(vlib_main_t * vm,
 
   hash_set(pm->hash_quic_ports, clib_host_to_net_u16(quic_port), 1);
   
-  //return clib_error_return (0, "port: %u", quic_port);
-
   return 0;
 }
 
@@ -253,8 +251,6 @@ static clib_error_t * spinbit_add_nat_fn(vlib_main_t * vm,
            clib_host_to_net_u16(port),
            clib_host_to_net_u32(ip4.as_u32));
 
-  //return clib_error_return (0, "IP: %u, port %u", ip4.as_u32, port);
-
   return 0;
 }
 
@@ -278,8 +274,6 @@ static clib_error_t * spinbit_add_ip_fn(vlib_main_t * vm,
 
   pm->mb_ip = clib_host_to_net_u32(ip4.as_u32);
   
-  //return clib_error_return (0, "IP: %u", pm->mb_ip.as_u32);
-
   return 0;
 }
 
@@ -403,6 +397,7 @@ void make_plus_key(spinbit_key_t * kv, u32 src_ip, u32 dst_ip,
   make_key(kv, src_ip, dst_ip, src_p, dst_p, protocol);
   kv->as_u64 = kv->as_u64 ^ cat;
 }
+
 /**
  *  @brief get session pointer if corresponding key is known
  */
@@ -647,7 +642,6 @@ bool vec_ne_zero_estimate(vlib_main_t * vm, status_spin_observer_t *observer,
   return update;
 }
 
-
 /*
  * Dynamic heuristic observer
  */
@@ -678,7 +672,7 @@ bool heuristic_estimate(vlib_main_t * vm, dyna_heur_spin_observer_t *observer,
         observer->new_server = true;
         update = true;
         /* The assumption is that a packet has been held back long enough to arrive
-         * after the valid spin edge, therefor, we completely ignore this false spin edge
+         * after the valid spin edge, therefore, we completely ignore this false spin edge
          * and do not report the time at which we saw this packet */
         observer->time_last_spin_server = now;
 
@@ -725,7 +719,7 @@ bool heuristic_estimate(vlib_main_t * vm, dyna_heur_spin_observer_t *observer,
 void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
                 f64 now, u16 src_port, u16 init_src_port, u8 measurement,
                 u32 tsval, u32 tsecr, u32 pkt_count, u32 seq_num) {
-  // test_printf(1, "%u,%u,%u\n", tsval, tsecr, src_port);
+
   bool spin = measurement & TCP_SPIN;
   u8 status_bits = (measurement & TCP_VEC_MASK) >> TCP_VEC_SHIFT;
   bool status = status_estimate(vm, &(session->status_spin_observer),
@@ -946,28 +940,17 @@ void update_plus_rtt_estimate(vlib_main_t * vm, plus_observer_t * session,
     if (src_port != init_src_port) {
       plus_printf(0, "%.*lf,%s,%u,%u,%u,%llu", TIME_PRECISION, now, "server", pkt_count, psn, pse, cat);
       
-      //session->plus_single_observer.rtt_dst = 0.06621162343342897;
-      //session->plus_single_observer.new_server = false;
-      
-      //plus_printf(0, ",%.*lf,%d", RTT_PRECISION, session->plus_single_observer.rtt_dst,
-      //           session->plus_single_observer.new_server);
       plus_printf(0, ",%.*lf", RTT_PRECISION, session->plus_single_observer.rtt_dst);
       plus_printf(0, ",%d", session->plus_single_observer.new_server);
-      //plus_printf(0, ",%.*lf,%d", 3, 0.123456, true);
     
       plus_printf(1, "\n");
 
       session->plus_single_observer.new_server = false;
     } else {
       plus_printf(0, "%.*lf,%s,%u,%u,%u,%llu", TIME_PRECISION, now, "client", pkt_count, psn, pse, cat);
-      //session->plus_single_observer.rtt_src = 0.01111262343342897;
-      //session->plus_single_observer.new_client = false;
-      //plus_printf(0, ",%.*lf,%d", RTT_PRECISION, session->plus_single_observer.rtt_src,
-      //           session->plus_single_observer.new_client);
+      
       plus_printf(0, ",%.*lf", RTT_PRECISION, session->plus_single_observer.rtt_src);
-      //plus_printf(0, ",%d,%s", session->plus_single_observer.new_client, "testooooo");
       plus_printf(0, ",%d", session->plus_single_observer.new_client);
-      //plus_printf(0, ",%.*lf,%d", 3, 0.76543, false);
       
       plus_printf(1, "\n");
 
@@ -1071,8 +1054,6 @@ u32 create_session(sup_protocols_t p_type) {
       session->p_type = P_PLUS;
       vec_alloc(session->plus, 1);
       memset(session->plus, 0, sizeof (plus_observer_t));
-      //session->plus->plus_single_observer.new_server = false;
-      //session->plus->plus_single_observer.new_client = false;
     break;
     
     case P_UNKNOWN:
@@ -1128,7 +1109,7 @@ void clean_session(u32 index)
   bi_table = &pm->spinbit_table;
   
   /* Clear hash and pool entry
-   * First for the key in reverse direction*/
+   * First for the key in reverse direction */
   kv.key = session->key_reverse;
   BV(clib_bihash_add_del) (bi_table, &kv, 0 /* is_add */);
   kv.key = session->key;
@@ -1209,7 +1190,6 @@ tcp_options_parse_mod (tcp_header_t * th, u32 * tsval, u32 * tsecr) {
           break;
         break;
       default:
-        /* Nothing to see here */
         continue;
     }
   }
@@ -1339,56 +1319,6 @@ static clib_error_t * spinbit_init (vlib_main_t * vm)
   // additional ports
 
   pm->hash_server_ports_to_ips = hash_create(0, sizeof(u32));
-  // First test: 5002; 167.99.25.24 -> 2808289560
-  // hash_set(pm->hash_server_ports_to_ips, 35347, 404317095);
-  // 45678; 10.0.101.1 ->  167798017
-  //hash_set(pm->hash_server_ports_to_ips, 28338, 23396362);
-  // 4433; 10.0.101.1 ->  167798017
-  //hash_set(pm->hash_server_ports_to_ips, 20753, 23396362);
-  // 4433; 23.23.23.23 -> 387389207
-  //hash_set(pm->hash_server_ports_to_ips, 20753, 387389207);
-  
-  // 206.189.252.230
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5230),
-           clib_host_to_net_u32(3468557542));
-  // 167.99.25.24
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5024),
-           clib_host_to_net_u32(2808289560));
-  // 167.99.17.152
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5152),
-           clib_host_to_net_u32(2808287640));
-  // 139.59.221.137
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5137),
-           clib_host_to_net_u32(2335956361));
-  // 67.207.69.77
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5077),
-           clib_host_to_net_u32(1137657165));
-  // 67.207.77.109
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5109),
-           clib_host_to_net_u32(1137659245));
-  // 139.59.53.245
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(5245),
-           clib_host_to_net_u32(2335913461));
-  // 10.0.0.2 (directly connected server) quic-go (PLUS)
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(6000),
-           clib_host_to_net_u32(167772162));
-  // 10.0.0.2 (directly connected server) plus-probe
-  hash_set(pm->hash_server_ports_to_ips,
-           clib_host_to_net_u16(7000),
-           clib_host_to_net_u32(167772162));
-
-  //hash_set(pm->hash_server_ports_to_ips,
-  //          54547,
-  //          1296420675);
-
 
   /* Init bihash */
   BV (clib_bihash_init) (&pm->spinbit_table, "spinbit", 2048, 512<<20);
