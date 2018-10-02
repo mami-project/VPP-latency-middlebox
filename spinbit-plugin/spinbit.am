@@ -11,21 +11,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-vppapitestplugins_LTLIBRARIES += plus_test_plugin.la
-vppplugins_LTLIBRARIES += plus_plugin.la
+vppapitestplugins_LTLIBRARIES += spinbit_test_plugin.la
+vppplugins_LTLIBRARIES += spinbit_plugin.la
 
-plus_plugin_la_SOURCES =		\
-	plus/plus.c				\
-	plus/node.c				\
-	plus/plus_plugin.api.h
+spinbit_plugin_la_SOURCES =		\
+	spinbit/spinbit.c				\
+	spinbit/node.c				\
+	spinbit/spinbit_plugin.api.h
 
-API_FILES += plus/plus.api
+API_FILES += spinbit/spinbit.api
 
 nobase_apiinclude_HEADERS +=			\
-  plus/plus_all_api_h.h				\
-  plus/plus_msg_enum.h				\
-  plus/plus.api.h
+  spinbit/spinbit_all_api_h.h				\
+  spinbit/spinbit_msg_enum.h				\
+  spinbit/spinbit.api.h
 
-plus_test_plugin_la_SOURCES = plus/plus_test.c plus/plus_plugin.api.h
+spinbit_test_plugin_la_SOURCES = spinbit/spinbit_test.c spinbit/spinbit_plugin.api.h
 
 # vi:syntax=automake

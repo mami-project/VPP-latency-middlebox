@@ -14,7 +14,7 @@
  */
 /*
  *------------------------------------------------------------------
- * plus_test.c - test harness plugin
+ * spinbit_test.c - test harness plugin
  *------------------------------------------------------------------
  */
 
@@ -24,34 +24,34 @@
 #include <vlibsocket/api.h>
 #include <vppinfra/error.h>
 
-#define __plugin_msg_base plus_test_main.msg_id_base
+#define __plugin_msg_base spinbit_test_main.msg_id_base
 #include <vlibapi/vat_helper_macros.h>
 
 uword unformat_sw_if_index (unformat_input_t * input, va_list * args);
 
 /* Declare message IDs */
-#include <plus/plus_msg_enum.h>
+#include <spinbit/spinbit_msg_enum.h>
 
 /* define message structures */
 #define vl_typedefs
-#include <plus/plus_all_api_h.h> 
+#include <spinbit/spinbit_all_api_h.h> 
 #undef vl_typedefs
 
 /* declare message handlers for each api */
 
 #define vl_endianfun             /* define message structures */
-#include <plus/plus_all_api_h.h> 
+#include <spinbit/spinbit_all_api_h.h> 
 #undef vl_endianfun
 
 /* instantiate all the print functions we know about */
 #define vl_print(handle, ...)
 #define vl_printfun
-#include <plus/plus_all_api_h.h> 
+#include <spinbit/spinbit_all_api_h.h> 
 #undef vl_printfun
 
 /* Get the API version number. */
 #define vl_api_version(n,v) static u32 api_version=(v);
-#include <plus/plus_all_api_h.h>
+#include <spinbit/spinbit_all_api_h.h>
 #undef vl_api_version
 
 
@@ -59,18 +59,18 @@ typedef struct {
     /* API message ID base */
     u16 msg_id_base;
     vat_main_t *vat_main;
-} plus_test_main_t;
+} spinbit_test_main_t;
 
-plus_test_main_t plus_test_main;
+spinbit_test_main_t spinbit_test_main;
 
 #define foreach_standard_reply_retval_handler   \
-_(plus_enable_disable_reply)
+_(spinbit_enable_disable_reply)
 
 #define _(n)                                            \
     static void vl_api_##n##_t_handler                  \
     (vl_api_##n##_t * mp)                               \
     {                                                   \
-        vat_main_t * vam = plus_test_main.vat_main;   \
+        vat_main_t * vam = spinbit_test_main.vat_main;   \
         i32 retval = ntohl(mp->retval);                 \
         if (vam->async_mode) {                          \
             vam->async_errors += (retval < 0);          \
@@ -87,15 +87,15 @@ foreach_standard_reply_retval_handler;
  * we just generated
  */
 #define foreach_vpe_api_reply_msg                                       \
-_(PLUS_ENABLE_DISABLE_REPLY, plus_enable_disable_reply)
+_(SPINBIT_ENABLE_DISABLE_REPLY, spinbit_enable_disable_reply)
 
 
-static int api_plus_enable_disable (vat_main_t * vam)
+static int api_spinbit_enable_disable (vat_main_t * vam)
 {
     unformat_input_t * i = vam->input;
     int enable_disable = 1;
     u32 sw_if_index = ~0;
-    vl_api_plus_enable_disable_t * mp;
+    vl_api_spinbit_enable_disable_t * mp;
     int ret;
 
     /* Parse args required to build the message */
@@ -116,7 +116,7 @@ static int api_plus_enable_disable (vat_main_t * vam)
     }
     
     /* Construct the API message */
-    M(PLUS_ENABLE_DISABLE, mp);
+    M(SPINBIT_ENABLE_DISABLE, mp);
     mp->sw_if_index = ntohl (sw_if_index);
     mp->enable_disable = enable_disable;
 
@@ -133,11 +133,11 @@ static int api_plus_enable_disable (vat_main_t * vam)
  * and that the data plane plugin processes
  */
 #define foreach_vpe_api_msg \
-_(plus_enable_disable, "<intfc> [disable]")
+_(spinbit_enable_disable, "<intfc> [disable]")
 
-static void plus_api_hookup (vat_main_t *vam)
+static void spinbit_api_hookup (vat_main_t *vam)
 {
-    plus_test_main_t * pm = &plus_test_main;
+    spinbit_test_main_t * pm = &spinbit_test_main;
     /* Hook up handlers for replies from the data plane plug-in */
 #define _(N,n)                                                  \
     vl_msg_api_set_handlers((VL_API_##N + pm->msg_id_base),     \
@@ -163,16 +163,16 @@ static void plus_api_hookup (vat_main_t *vam)
 
 clib_error_t * vat_plugin_register (vat_main_t *vam)
 {
-  plus_test_main_t * pm = &plus_test_main;
+  spinbit_test_main_t * pm = &spinbit_test_main;
   u8 * name;
 
   pm->vat_main = vam;
 
-  name = format (0, "plus_%08x%c", api_version, 0);
+  name = format (0, "spinbit_%08x%c", api_version, 0);
   pm->msg_id_base = vl_client_get_first_plugin_msg_id ((char *) name);
 
   if (pm->msg_id_base != (u16) ~0)
-    plus_api_hookup (vam);
+    spinbit_api_hookup (vam);
   
   vec_free(name);
   

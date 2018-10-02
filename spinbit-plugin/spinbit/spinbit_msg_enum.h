@@ -1,4 +1,3 @@
-/* Hey Emacs use -*- mode: C -*- */
 /*
  * Copyright (c) 2015 Cisco and/or its affiliates.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef included_spinbit_msg_enum_h
+#define included_spinbit_msg_enum_h
 
-/* Define a simple binary API to control the feature */
+#include <vppinfra/byte_order.h>
 
-autoreply define plus_enable_disable {
-    /* Client identifier, set from api_main.my_client_index */
-    u32 client_index;
+#define vl_msg_id(n,h) n,
+typedef enum {
+#include <spinbit/spinbit_all_api_h.h>
+    /* We'll want to know how many messages IDs we need... */
+    VL_MSG_FIRST_AVAILABLE,
+} vl_msg_id_t;
+#undef vl_msg_id
 
-    /* Arbitrary context, so client can match reply to request */
-    u32 context;
-
-    /* Enable / disable the feature */
-    u8 enable_disable;
-
-    /* Interface handle */
-    u32 sw_if_index;
-};
+#endif /* included_spinbit_msg_enum_h */

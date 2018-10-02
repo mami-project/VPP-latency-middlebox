@@ -1,4 +1,4 @@
-AC_INIT(vpp_plugins, 1.0)
+AC_INIT(spinbit_plugins, 1.0)
 LT_INIT
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES([yes])

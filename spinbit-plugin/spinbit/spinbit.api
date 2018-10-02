@@ -1,3 +1,4 @@
+/* Hey Emacs use -*- mode: C -*- */
 /*
  * Copyright (c) 2015 Cisco and/or its affiliates.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,5 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* Include the generated file, see BUILT_SOURCES in Makefile.am */
-#include <plus/plus.api.h>
+
+/* Define a simple binary API to control the feature */
+
+autoreply define spinbit_enable_disable {
+    /* Client identifier, set from api_main.my_client_index */
+    u32 client_index;
+
+    /* Arbitrary context, so client can match reply to request */
+    u32 context;
+
+    /* Enable / disable the feature */
+    u8 enable_disable;
+
+    /* Interface handle */
+    u32 sw_if_index;
+};

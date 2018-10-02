@@ -29,7 +29,7 @@ ACLOCAL_AMFLAGS = -I m4
 vppapitestpluginsdir = ${libdir}/vpp_api_test_plugins
 vpppluginsdir = ${libdir}/vpp_plugins
 
-include plus.am
+include spinbit.am
 
 %.api.h: %.api
 	mkdir -p `dirname $@` ; \
