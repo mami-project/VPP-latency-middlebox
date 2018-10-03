@@ -1199,19 +1199,19 @@ void spinbit_printf (int flush, char *fmt, ...) {
   va_list va;
   u8 *s;
 
-  static FILE *output_file = NULL;
+  static FILE *output_file_spin = NULL;
 
   va_start (va, fmt);
   s = va_format (0, fmt, &va);
   va_end (va);
 
-  if (output_file == NULL){
-    output_file = fopen("/tmp/spinbit_quic_printf.out", "w");
+  if (output_file_spin == NULL){
+    output_file_spin = fopen("/tmp/spinbit_quic_printf.out", "w");
   }
-  fprintf(output_file, "%s", s);
+  fprintf(output_file_spin, "%s", s);
 
   if (flush){
-    fflush(output_file);
+    fflush(output_file_spin);
   }
 
   vec_free (s);
@@ -1222,19 +1222,19 @@ void tcp_printf (int flush, char *fmt, ...) {
   va_list va;
   u8 *s;
 
-  static FILE *output_file = NULL;
+  static FILE *output_file_tcp = NULL;
 
   va_start (va, fmt);
   s = va_format (0, fmt, &va);
   va_end (va);
 
-  if (output_file == NULL){
-    output_file = fopen("/tmp/spinbit_tcp_printf.out", "w");
+  if (output_file_tcp == NULL){
+    output_file_tcp = fopen("/tmp/spinbit_tcp_printf.out", "w");
   }
-  fprintf(output_file, "%s", s);
+  fprintf(output_file_tcp, "%s", s);
 
   if (flush){
-    fflush(output_file);
+    fflush(output_file_tcp);
   }
 
   vec_free (s);
@@ -1245,19 +1245,19 @@ void test_printf (int flush, char *fmt, ...) {
   va_list va;
   u8 *s;
 
-  static FILE *output_file = NULL;
+  static FILE *output_file_test = NULL;
 
   va_start (va, fmt);
   s = va_format (0, fmt, &va);
   va_end (va);
 
-  if (output_file == NULL){
-    output_file = fopen("/tmp/spinbit_debug.out", "w");
+  if (output_file_test == NULL){
+    output_file_test = fopen("/tmp/spinbit_debug.out", "w");
   }
-  fprintf(output_file, "%s", s);
+  fprintf(output_file_test, "%s", s);
 
   if (flush){
-    fflush(output_file);
+    fflush(output_file_test);
   }
 
   vec_free (s);
@@ -1268,19 +1268,19 @@ void plus_printf (int flush, char *fmt, ...) {
   va_list va;
   u8 *s;
 
-  static FILE *output_file = NULL;
+  static FILE *output_file_plus = NULL;
 
   va_start (va, fmt);
   s = va_format (0, fmt, &va);
   va_end (va);
 
-  if (output_file == NULL){
-    output_file = fopen("/tmp/spinbit_plus_printf.out", "w");
+  if (output_file_plus == NULL){
+    output_file_plus = fopen("/tmp/spinbit_plus_printf.out", "w");
   }
-  fprintf(output_file, "%s", s);
+  fprintf(output_file_plus, "%s", s);
 
   if (flush){
-    fflush(output_file);
+    fflush(output_file_plus);
   }
 
   vec_free (s);
