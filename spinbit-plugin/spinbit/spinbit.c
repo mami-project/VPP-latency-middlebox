@@ -68,7 +68,6 @@ VLIB_PLUGIN_REGISTER () = {
  *
  * Action function shared between message handler and debug CLI.
  */
-
 int spinbit_enable_disable (spinbit_main_t * pm, u32 sw_if_index,
                                    int enable_disable)
 {
@@ -525,8 +524,8 @@ bool basic_spinbit_estimate(vlib_main_t * vm, basic_spin_observer_t *observer,
   } else {
     if (observer->spin_client != spin) {
       observer->spin_client = spin;
-      observer->new_client = true;
       observer->rtt_client = now - observer->time_last_spin_client;
+      observer->new_client = true;
       observer->time_last_spin_client = now;
       return true;
     }
@@ -733,25 +732,10 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
     tcp_printf(0, "%s,%s,%s", "time", "host", "seq_num");
     tcp_printf(0, ",%s,%s", "status_data", "status_new");
     tcp_printf(0, ",%s,%s", "single_ts_rtt", "single_ts_rtt_new");
-    tcp_printf(0, ",%s,%s,%s", "all_ts_rtt",
-               "all_ts_rtt_new", "total_state");
+    tcp_printf(0, ",%s,%s", "all_ts_rtt", "all_ts_rtt_new");
     tcp_printf(0, ",%s,%s", "vec_ne_zero", "vec_ne_zero_new");
     tcp_printf(0, "\n");
-
-    test_printf(0, "%s,%s,%s", "time", "host", "seq_num");
-    test_printf(0, ",%s,%s", "tsval", "tsecr");
-    test_printf(0, ",%s,%s", "VEC", "spin");
-    test_printf(0, ",%s", "new_RTT");
-    test_printf(0, "\n");
   }
-
-  if (src_port != init_src_port) {
-    test_printf(0, "%.*lf,%s,%u", TIME_PRECISION, now, "server", seq_num);
-  } else {
-    test_printf(0, "%.*lf,%s,%u", TIME_PRECISION, now, "client", seq_num);
-  }
-  test_printf(0, ",%u,%u", tsval, tsecr);
-  test_printf(0, ",%u,%d", status_bits, spin);
   
   /* If we have at least one update */
   if (status || single || all || vec_status) {
@@ -764,10 +748,6 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
       tcp_printf(0, ",%d", session->ts_one_RTT_observer.new_server);
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->ts_all_RTT_observer.rtt_server);
       tcp_printf(0, ",%d", session->ts_all_RTT_observer.new_server);
-      tcp_printf(0, ",%lu", hash_elts(session->ts_all_RTT_observer.hash_init_client) +
-                 hash_elts(session->ts_all_RTT_observer.hash_init_server) +
-                 hash_elts(session->ts_all_RTT_observer.hash_ack_client) +
-                 hash_elts(session->ts_all_RTT_observer.hash_ack_server));
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->vec_ne_zero.rtt_server);
       tcp_printf(0, ",%d", session->vec_ne_zero.new_server);
     
@@ -778,7 +758,6 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
       session->ts_one_RTT_observer.new_server = false;
       session->ts_all_RTT_observer.new_server = false;
 
-      test_printf(1, ",1\n");
     } else {
       tcp_printf(0, "%.*lf,%s,%u", TIME_PRECISION, now, "client", seq_num);
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->status_spin_observer.rtt_client);
@@ -787,10 +766,6 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
       tcp_printf(0, ",%d", session->ts_one_RTT_observer.new_client);
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->ts_all_RTT_observer.rtt_client);
       tcp_printf(0, ",%d", session->ts_all_RTT_observer.new_client);
-      tcp_printf(0, ",%lu", hash_elts(session->ts_all_RTT_observer.hash_init_client) +
-                 hash_elts(session->ts_all_RTT_observer.hash_init_server) +
-                 hash_elts(session->ts_all_RTT_observer.hash_ack_client) +
-                 hash_elts(session->ts_all_RTT_observer.hash_ack_server));
       tcp_printf(0, ",%.*lf", RTT_PRECISION, session->vec_ne_zero.rtt_client);
       tcp_printf(0, ",%d", session->vec_ne_zero.new_client);
       
@@ -801,10 +776,7 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
       session->ts_one_RTT_observer.new_client = false;
       session->ts_all_RTT_observer.new_client = false;
 
-      test_printf(1, ",1\n");
     }
-  } else {
-    test_printf(1, ",0\n");
   }
 }
 
@@ -1235,29 +1207,6 @@ void tcp_printf (int flush, char *fmt, ...) {
 
   if (flush){
     fflush(output_file_tcp);
-  }
-
-  vec_free (s);
-}
-
-/* Output to CLI / stdout, this is a modified copy of `vlib_cli_output` */
-void test_printf (int flush, char *fmt, ...) {
-  va_list va;
-  u8 *s;
-
-  static FILE *output_file_test = NULL;
-
-  va_start (va, fmt);
-  s = va_format (0, fmt, &va);
-  va_end (va);
-
-  if (output_file_test == NULL){
-    output_file_test = fopen("/tmp/spinbit_debug.out", "w");
-  }
-  fprintf(output_file_test, "%s", s);
-
-  if (flush){
-    fflush(output_file_test);
   }
 
   vec_free (s);

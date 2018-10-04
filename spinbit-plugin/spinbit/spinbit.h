@@ -392,7 +392,6 @@ bool ip_nat_translation(ip4_header_t *ip0, u32 init_src_ip, u32 new_dst_ip);
 void clean_session(u32 index);
 void spinbit_printf (int flush, char *fmt, ...);
 void tcp_printf (int flush, char *fmt, ...);
-void test_printf (int flush, char *fmt, ...);
 void plus_printf (int flush, char *fmt, ...);
 
 /**
