@@ -99,7 +99,7 @@ want to deploy the middlebox such that it can make on-path measurements taking t
 both directions into account. Can be repeated with different pairs of ports and IPs.
 See next section for more information.
 
-### On-path measurements
+# On-path latency measurements
 To be able to perform on-path measurements and observing traffic from the client
 to the server **and** the reverse traffic, we added NAT-like functionalities to the
 latency plugin.
@@ -119,7 +119,7 @@ Once it receives traffic back from the server, it reverses the process and sends
 
 Following a list of sample commands to configure VPP and the plugin to implement the previous example.
 We assume that the server running VPP is inside a network with IP space 1.2.3.0/24 and the gateway
-towards the Internet has the IP 1.2.3.1. The VPP server has one interface (called GigabitEthernet3/0/0).
+towards the Internet has the IP 1.2.3.1. The VPP server has one interface (called `GigabitEthernet3/0/0`).
 The actual interface name depends one the used implementation/hardware and can be found with `sudo vppctl sh int`.
 
 ```
@@ -135,3 +135,24 @@ The actual interface name depends one the used implementation/hardware and can b
 The last command declares traffic towards/from port 8888 as QUIC traffic.
 All these commands can be saved in a file (e.g. `setup.conf`) and executed
 with `sudo vppctl exec setup.conf`.
+
+## Measurement results
+
+The VPP plugin writes latency measurement results to the `/tmp` folder using different
+files for QUIC, TCP and PLUS traffic (`/tmp/latency_{plus,tcp,quic}_printf.out`).
+The data is saved as CSV files.
+
+### QUIC latency measurements
+Header of the CSV file: `time,pn,host,basic_data,basic_new,pn_data,pn_new,status_data,status_new,rel_heur_data,rel_heur_new`
+- `time`: time since start of VPP in seconds
+- `pn`: packet number of observed QUIC packet
+- `host`: server of client direction
+- `basic_data`: latency estimation taking only the latency spin bit into account
+- `basic_new`: does the `basic_data` contain a new estimation (0 or 1)
+- `pn_data`: latency estimation based on the spin bit only but rejecting reordered packets based on the packet number
+- `pn_new`: does the `pn_new` contain a new estimation (0 or 1)
+- `status_data`: latency estimation based on the full spin signal (spin bit and VEC)
+- `status_new`: does the `status_data` contain a new estimation (0 or 1)
+- `rel_heur_data`: latency estimation based on the spin bit only but rejecting RTT samples based on a heuristic
+- `rel_heur_new`: does the `rel_heur_data` contain a new estimation (0 or 1)
+
