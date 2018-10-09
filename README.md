@@ -136,6 +136,12 @@ The last command declares traffic towards/from port 8888 as QUIC traffic.
 All these commands can be saved in a file (e.g. `setup.conf`) and executed
 with `sudo vppctl exec setup.conf`.
 
+If you use the Vagrant installation and you want to connect the VM to the host machine,
+use "Host-only Networks" (assuming VirtualBox as provider for the Vagrant VM).
+On your local machine in VirtualBox: Go to `Virtualbox --> Preferences...`.
+In the "Network tab" add one or more "Host-only Networks".
+Restart the Vagrant VM and VPP should see the interfaces when e.g. using `sudo vppctl sh int`.
+
 ## Measurement results
 
 The VPP plugin writes latency measurement results to the `/tmp` folder using different
