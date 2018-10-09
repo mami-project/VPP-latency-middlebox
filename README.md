@@ -136,11 +136,25 @@ The last command declares traffic towards/from port 8888 as QUIC traffic.
 All these commands can be saved in a file (e.g. `setup.conf`) and executed
 with `sudo vppctl exec setup.conf`.
 
-If you use the Vagrant installation and you want to connect the VM to the host machine,
+## Connect Vagrant to host machine
+
+If you use the Vagrant installation and want to connect the VM to the host machine,
 use "Host-only Networks" (assuming VirtualBox as provider for the Vagrant VM).
 On your local machine in VirtualBox: Go to `Virtualbox --> Preferences...`.
-In the "Network tab" add one or more "Host-only Networks".
-Restart the Vagrant VM and VPP should see the interfaces when e.g. using `sudo vppctl sh int`.
+In the "Network tab" add two "Host-only Networks" and change the configuration:
+```
+Network 1: IPv4 Address: 192.168.100.1, IPv4 Network Mask: 255.255.255.0
+Network 2: IPv4 Address: 192.168.101.1, IPv4 Network Mask: 255.255.255.0
+```
+
+Restart the Vagrant VM and VPP should see the interfaces when using `sudo vppctl sh int`
+as `GigabitEthernet0/8/0` and `GigabitEthernet0/9/0`. Add the corresponding IPs:
+```
+set int state GigabitEthernet0/8/0 up
+set int ip address GigabitEthernet0/8/0 192.168.100.2/24
+set int state GigabitEthernet0/9/0 up
+set int ip address GigabitEthernet0/9/0 192.168.101.2/24
+```
 
 ## Measurement results
 
