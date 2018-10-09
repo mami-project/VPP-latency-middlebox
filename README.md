@@ -172,3 +172,15 @@ Header of the CSV file: `time,host,seq_num,vec_data,vec_new,single_ts_rtt_data,s
 - `vec_ne_zero_data`: latency estimation based on the full spin signal (spin bit and VEC) taking every non-zero VEC value into account
 - `vec_ne_zero_new`: does the `vec_ne_zero_data` contain a new estimation (0 or 1)
 
+### PLUS latency measurements
+Header of the CSV file: `time,host,#pkt,psn,pse,cat,psn_pse_data,psn_pse_new`
+- `time`: time since start of VPP in seconds
+- `host`: server of client directions
+- `#pkt`: number of packet in PLUS flow
+- `psn`: Packet Serial Number of the observed PLUS packet
+- `pse`: Packet Serial Echo of the observed PLUS packet
+- `cat`: Connection and Association Token of the observed PLUS packet
+- `psn_pse_data`: latency estimation based on the PSN and PSE
+- `psn_pse_new`: does the `psn_pse_data` contain a new estimation (0 or 1)
+
+More information can be found in our [PLUS paper](https://nsg.ee.ethz.ch/fileadmin/user_upload/CNSM_2017.pdf).
