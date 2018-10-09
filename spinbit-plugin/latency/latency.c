@@ -899,7 +899,7 @@ void update_plus_rtt_estimate(vlib_main_t * vm, plus_observer_t * session,
   
   if (pkt_count == 1){
     /* TODO: add CAT */
-    plus_printf(0, "%s,%s,%s,%s,%s", "time", "host", "#pkt", "psn", "pse", "cat");
+    plus_printf(0, "%s,%s,%s,%s,%s,%s", "time", "host", "#pkt", "psn", "pse", "cat");
     plus_printf(0, ",%s,%s", "psn_pse_data", "psn_pse_new");
     plus_printf(0, "\n");
   }
