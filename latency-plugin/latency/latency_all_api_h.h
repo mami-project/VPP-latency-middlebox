@@ -12,17 +12,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef included_plus_msg_enum_h
-#define included_plus_msg_enum_h
-
-#include <vppinfra/byte_order.h>
-
-#define vl_msg_id(n,h) n,
-typedef enum {
-#include <plus/plus_all_api_h.h>
-    /* We'll want to know how many messages IDs we need... */
-    VL_MSG_FIRST_AVAILABLE,
-} vl_msg_id_t;
-#undef vl_msg_id
-
-#endif /* included_plus_msg_enum_h */
+/* Include the generated file, see BUILT_SOURCES in Makefile.am */
+#include <latency/latency.api.h>

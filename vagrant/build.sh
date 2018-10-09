@@ -5,7 +5,7 @@ echo "deb [trusted=yes] https://nexus.fd.io/content/repositories/fd.io.stable.17
 apt-get update
 apt-get install -y git vpp vpp-lib vpp-dev vpp-dbg vpp-dpdk-dev vpp-dpdk-dkms vpp-plugins vpp-api-java vpp-api-lua vpp-api-python autoconf libtool traceroute python-scapy
 
-# Compile/Install MMB plugin
+# Compile/Install latency plugin
 service vpp stop
-(cd /home/vagrant/plus-mb/plus-plugin; autoreconf -fis; ./configure; make; make install)
+(cd /home/vagrant/vpp-latency-mb/latency-plugin; autoreconf -fis; ./configure; make; make install)
 

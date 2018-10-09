@@ -11,21 +11,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-vppapitestplugins_LTLIBRARIES += plus_test_plugin.la
-vppplugins_LTLIBRARIES += plus_plugin.la
+vppapitestplugins_LTLIBRARIES += latency_test_plugin.la
+vppplugins_LTLIBRARIES += latency_plugin.la
 
-plus_plugin_la_SOURCES =		\
-	plus/plus.c				\
-	plus/node.c				\
-	plus/plus_plugin.api.h
+latency_plugin_la_SOURCES =		\
+	latency/latency.c				\
+	latency/node.c				\
+	latency/latency_plugin.api.h
 
-API_FILES += plus/plus.api
+API_FILES += latency/latency.api
 
 nobase_apiinclude_HEADERS +=			\
-  plus/plus_all_api_h.h				\
-  plus/plus_msg_enum.h				\
-  plus/plus.api.h
+  latency/latency_all_api_h.h				\
+  latency/latency_msg_enum.h				\
+  latency/latency.api.h
 
-plus_test_plugin_la_SOURCES = plus/plus_test.c plus/plus_plugin.api.h
+latency_test_plugin_la_SOURCES = latency/latency_test.c latency/latency_plugin.api.h
 
 # vi:syntax=automake
