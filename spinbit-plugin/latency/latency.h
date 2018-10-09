@@ -18,7 +18,7 @@
  * 
  * Used data structures:
  * - A bihash_8_8 (bounded-index extensible hash) - 8 byte key and 8 byte value.
- * - A pool is used to save the state for each SPINBIT flow (fixed sized struct)
+ * - A pool is used to save the state for each LATENCY flow (fixed sized struct)
  * - A timer wheel (2t_1w_2048sl = 2 timers per object, 1 wheel, 2048 slots)
  *
  * The key in the hash table consist of (XOR is used to match both directions):
@@ -30,36 +30,36 @@
  *    - for PLUS packets we also take the CAT value into the hash key
  *
  * The value corresponding to a key (in the hash table) is the pool index
- * for the state of the matching SPINBIT flow.
+ * for the state of the matching LATENCY flow.
  *
  * Besides the actual "state" of the flow we also save e.g. counters, RTT
  * estimates, ...
  */
 
-#ifndef __included_spinbit_h__
-#define __included_spinbit_h__
+#ifndef __included_latency_h__
+#define __included_latency_h__
 
 /* Quic handshake states for handshake RTT measurement */
-#define SPINBIT_HANDSHAKE_IDLE               0
-#define SPINBIT_HANDSHAKE_CLIENT_INITIAL     1
-#define SPINBIT_HANDSHAKE_SERVER_CLEARTEXT   2
-#define SPINBIT_HANDSHAKE_CLIENT_CLEARTEXT   3
+#define LATENCY_HANDSHAKE_IDLE               0
+#define LATENCY_HANDSHAKE_CLIENT_INITIAL     1
+#define LATENCY_HANDSHAKE_SERVER_CLEARTEXT   2
+#define LATENCY_HANDSHAKE_CLIENT_CLEARTEXT   3
 
 /* Quic header types */
-#define SPINBIT_PACKET_LONG_VERSION_NEGOTIATION      0x81
-#define SPINBIT_PACKET_LONG_CLIENT_INITIAL           0x82
-#define SPINBIT_PACKET_LONG_SERVER_STATELESS_RETRY   0x83
-#define SPINBIT_PACKET_LONG_SERVER_CLEARTEXT         0x84
-#define SPINBIT_PACKET_LONG_CLIENT_CLEARTEXT         0x85
-#define SPINBIT_PACKET_LONG_0_RTT_PROTECTED          0x86
-#define SPINBIT_PACKET_LONG_1_RTT_PROTECTED_PHASE_1  0x87
-#define SPINBIT_PACKET_LONG_1_RTT_PROTECTED_PHASE_2  0x88
-#define SPINBIT_PACKET_SHORT_1_OCTET                 0x01
-#define SPINBIT_PACKET_SHORT_2_OCTET                 0x02
-#define SPINBIT_PACKET_SHORT_4_OCTET                 0x03
+#define LATENCY_PACKET_LONG_VERSION_NEGOTIATION      0x81
+#define LATENCY_PACKET_LONG_CLIENT_INITIAL           0x82
+#define LATENCY_PACKET_LONG_SERVER_STATELESS_RETRY   0x83
+#define LATENCY_PACKET_LONG_SERVER_CLEARTEXT         0x84
+#define LATENCY_PACKET_LONG_CLIENT_CLEARTEXT         0x85
+#define LATENCY_PACKET_LONG_0_RTT_PROTECTED          0x86
+#define LATENCY_PACKET_LONG_1_RTT_PROTECTED_PHASE_1  0x87
+#define LATENCY_PACKET_LONG_1_RTT_PROTECTED_PHASE_2  0x88
+#define LATENCY_PACKET_SHORT_1_OCTET                 0x01
+#define LATENCY_PACKET_SHORT_2_OCTET                 0x02
+#define LATENCY_PACKET_SHORT_4_OCTET                 0x03
 
-#define SPINBIT_PACKET_SHORT_MASK                    0b10011111
-#define SPINBIT_PACKET_LONG_MASK                     0b11111111
+#define LATENCY_PACKET_SHORT_MASK                    0b10011111
+#define LATENCY_PACKET_LONG_MASK                     0b11111111
 
 #include <vnet/vnet.h>
 #include <vnet/ip/ip.h>
@@ -78,8 +78,8 @@
 /* Timer wheel (2 timers, 1 wheel, 2048 slots) */
 #include <vppinfra/tw_timer_2t_1w_2048sl.h>
 
-/* Defines all the SPINBIT states */
-#define foreach_spinbit_state \
+/* Defines all the LATENCY states */
+#define foreach_latency_state \
 _(ACTIVE, "default state for TCP and QUIC") \
 _(P_ZERO, "PLUS: no flow") \
 _(P_UNIFLOW, "PLUS: flow in one direction") \
@@ -90,10 +90,10 @@ _(P_STOPPING, "PLSU: stop signal also in other direction") \
 _(ERROR, "error state for all flows")
 
 typedef enum {
-#define _(sym,str) SPINBIT_STATE_##sym,
-  foreach_spinbit_state
+#define _(sym,str) LATENCY_STATE_##sym,
+  foreach_latency_state
 #undef _
-} spinbit_state_t;
+} latency_state_t;
 
 #define foreach_protocol \
 _(TCP, "TCP flow") \
@@ -244,7 +244,7 @@ typedef struct {
 
 /* main TCP observer struct */
 typedef struct {
-  /* Data structures for the spinbit and timestamp observer */
+  /* Data structures for the latency and timestamp observer */
   status_spin_observer_t status_spin_observer;
   status_spin_observer_t vec_ne_zero;
   timestamp_observer_single_RTT_t ts_one_RTT_observer;
@@ -275,9 +275,9 @@ typedef struct {
   plus_single_observer_t plus_single_observer;
 } plus_observer_t;
 
-/* State for each observed SPINBIT session */
+/* State for each observed LATENCY session */
 typedef struct {
-  spinbit_state_t state;
+  latency_state_t state;
 
   sup_protocols_t p_type;
 
@@ -299,9 +299,9 @@ typedef struct {
   quic_observer_t * quic;
   tcp_observer_t * tcp;
   plus_observer_t * plus;
-} spinbit_session_t;
+} latency_session_t;
 
-/* Main spinbit struct */
+/* Main latency struct */
 typedef struct {
   /* API message ID base */
   u16 msg_id_base;
@@ -313,10 +313,10 @@ typedef struct {
   vnet_main_t * vnet_main;
     
   /* Hash table */
-  BVT (clib_bihash) spinbit_table;
+  BVT (clib_bihash) latency_table;
 
   /* Session pool */
-  spinbit_session_t * session_pool;
+  latency_session_t * session_pool;
 
   /* Contains all ports that indicated QUIC traffic */
   uword *hash_quic_ports;
@@ -332,7 +332,7 @@ typedef struct {
 
   /* Timer wheel*/
   tw_timer_wheel_2t_1w_2048sl_t tw;
-} spinbit_main_t;
+} latency_main_t;
 
 /* Hash key struct */
 typedef CLIB_PACKED (struct {
@@ -345,27 +345,27 @@ typedef CLIB_PACKED (struct {
     };
     u64 as_u64;
   };
-}) spinbit_key_t;
+}) latency_key_t;
 
-spinbit_main_t spinbit_main;
+latency_main_t latency_main;
 
-extern vlib_node_registration_t spinbit_node;
+extern vlib_node_registration_t latency_node;
 
-u64 get_state(spinbit_key_t * kv_in);
-void update_state(spinbit_key_t * kv_in, uword new_state);
-void make_key(spinbit_key_t * kv, u32 src_ip, u32 dst_ip,
+u64 get_state(latency_key_t * kv_in);
+void update_state(latency_key_t * kv_in, uword new_state);
+void make_key(latency_key_t * kv, u32 src_ip, u32 dst_ip,
                 u16 src_p, u16 dst_p, u8 protocol);
-void make_plus_key(spinbit_key_t * kv, u32 src_ip, u32 dst_ip,
+void make_plus_key(latency_key_t * kv, u32 src_ip, u32 dst_ip,
                 u16 src_p, u16 dst_p, u8 protocol, u64 cat);
-spinbit_session_t * get_session_from_key(spinbit_key_t * kv_in);
+latency_session_t * get_session_from_key(latency_key_t * kv_in);
 u32 create_session(sup_protocols_t p_type);
 
 void update_quic_rtt_estimate(vlib_main_t * vm, quic_observer_t * session,
         f64 now, u16 src_port, u16 init_src_port, u8 measurement,
         u32 packet_number, u32 pkt_count);
-bool basic_spinbit_estimate(vlib_main_t * vm, basic_spin_observer_t *observer,
+bool basic_latency_estimate(vlib_main_t * vm, basic_spin_observer_t *observer,
         f64 now, u16 src_port, u16 init_src_port, bool spin);
-bool pn_spinbit_estimate(vlib_main_t * vm, pn_spin_observer_t *observer,
+bool pn_latency_estimate(vlib_main_t * vm, pn_spin_observer_t *observer,
         f64 now, u16 src_port, u16 init_src_port, bool spin, u32 packet_number);
 bool status_estimate(vlib_main_t * vm, status_spin_observer_t *observer,
         f64 now, u16 src_port, u16 init_src_port, bool spin, u8 status);
@@ -390,45 +390,45 @@ bool psn_single_estimate(vlib_main_t * vm, plus_single_observer_t * session,
 bool ip_nat_translation(ip4_header_t *ip0, u32 init_src_ip, u32 new_dst_ip);
 
 void clean_session(u32 index);
-void spinbit_printf (int flush, char *fmt, ...);
+void latency_printf (int flush, char *fmt, ...);
 void tcp_printf (int flush, char *fmt, ...);
 void plus_printf (int flush, char *fmt, ...);
 
 /**
- * @brief get spinbit session for index
+ * @brief get latency session for index
  */
-always_inline spinbit_session_t * get_spinbit_session(u32 index) {
-  if (pool_is_free_index (spinbit_main.session_pool, index))
+always_inline latency_session_t * get_latency_session(u32 index) {
+  if (pool_is_free_index (latency_main.session_pool, index))
     return 0;
-  return pool_elt_at_index (spinbit_main.session_pool, index);
+  return pool_elt_at_index (latency_main.session_pool, index);
 }
 
 /**
  * @brief start a timer in the timer wheel
  */
-always_inline void start_timer(spinbit_session_t * session, u64 interval) {
-  session->timer = tw_timer_start_2t_1w_2048sl (&spinbit_main.tw,
+always_inline void start_timer(latency_session_t * session, u64 interval) {
+  session->timer = tw_timer_start_2t_1w_2048sl (&latency_main.tw,
                    session->index, 0, interval);
 }
 
 /**
  * @brief update the timer
  */
-always_inline void update_timer(spinbit_session_t * session, u64 interval) {
+always_inline void update_timer(latency_session_t * session, u64 interval) {
   if(session->timer != ~0) {
-    tw_timer_stop_2t_1w_2048sl (&spinbit_main.tw, session->timer);
+    tw_timer_stop_2t_1w_2048sl (&latency_main.tw, session->timer);
   }
-  session->timer = tw_timer_start_2t_1w_2048sl (&spinbit_main.tw,
+  session->timer = tw_timer_start_2t_1w_2048sl (&latency_main.tw,
                   session->index, 0, interval);
 }
 
 always_inline bool is_quic(u16 src_port, u16 dst_port) {
-  return hash_get(spinbit_main.hash_quic_ports, src_port)
-          || hash_get(spinbit_main.hash_quic_ports, dst_port);
+  return hash_get(latency_main.hash_quic_ports, src_port)
+          || hash_get(latency_main.hash_quic_ports, dst_port);
 }
 
 always_inline void get_new_dst(u32 *new_dst_ip, u16 src_port) {
-  uword* temp_ip = hash_get(spinbit_main.hash_server_ports_to_ips, src_port);
+  uword* temp_ip = hash_get(latency_main.hash_server_ports_to_ips, src_port);
   if (temp_ip) {
     *new_dst_ip = *((u32 *) temp_ip);
     return;
@@ -449,9 +449,9 @@ always_inline bool comes_after_u32(u32 now, u32 old) {
  * @brief expire timers
  */
 always_inline void expire_timers(f64 now) {
-  tw_timer_expire_timers_2t_1w_2048sl (&spinbit_main.tw, now);
+  tw_timer_expire_timers_2t_1w_2048sl (&latency_main.tw, now);
 }
 
-#define SPINBIT_PLUGIN_BUILD_VER "0.1"
+#define LATENCY_PLUGIN_BUILD_VER "0.1"
 
-#endif /* __included_spinbit_h__ */
+#endif /* __included_latency_h__ */

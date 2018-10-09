@@ -13,4 +13,4 @@
  * limitations under the License.
  */
 /* Include the generated file, see BUILT_SOURCES in Makefile.am */
-#include <spinbit/spinbit.api.h>
+#include <latency/latency.api.h>

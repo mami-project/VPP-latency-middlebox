@@ -16,7 +16,7 @@
 
 /* Define a simple binary API to control the feature */
 
-autoreply define spinbit_enable_disable {
+autoreply define latency_enable_disable {
     /* Client identifier, set from api_main.my_client_index */
     u32 client_index;
 

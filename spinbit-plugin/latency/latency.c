@@ -14,52 +14,52 @@
  */
 /**
  * @file
- * @brief Spinbit plugin, plugin API / trace / CLI handling.
+ * @brief Latency plugin, plugin API / trace / CLI handling.
  */
 
 #include <vnet/vnet.h>
 #include <vnet/plugin/plugin.h>
-#include <spinbit/spinbit.h>
+#include <latency/latency.h>
 
 #include <vlibapi/api.h>
 #include <vlibmemory/api.h>
 #include <vlibsocket/api.h>
 
 /* define message IDs */
-#include <spinbit/spinbit_msg_enum.h>
+#include <latency/latency_msg_enum.h>
 
 /* define message structures */
 #define vl_typedefs
-#include <spinbit/spinbit_all_api_h.h> 
+#include <latency/latency_all_api_h.h> 
 #undef vl_typedefs
 
 /* define generated endian-swappers */
 #define vl_endianfun
-#include <spinbit/spinbit_all_api_h.h> 
+#include <latency/latency_all_api_h.h> 
 #undef vl_endianfun
 
 /* instantiate all the print functions we know about */
 #define vl_print(handle, ...) vlib_cli_output (handle, __VA_ARGS__)
 #define vl_printfun
-#include <spinbit/spinbit_all_api_h.h> 
+#include <latency/latency_all_api_h.h> 
 #undef vl_printfun
 
 /* Get the API version number */
 #define vl_api_version(n,v) static u32 api_version=(v);
-#include <spinbit/spinbit_all_api_h.h>
+#include <latency/latency_all_api_h.h>
 #undef vl_api_version
 
 #define REPLY_MSG_ID_BASE pm->msg_id_base
 #include <vlibapi/api_helper_macros.h>
 
 /* List of message types that this plugin understands */
-#define foreach_spinbit_plugin_api_msg                           \
-_(SPINBIT_ENABLE_DISABLE, spinbit_enable_disable)
+#define foreach_latency_plugin_api_msg                           \
+_(LATENCY_ENABLE_DISABLE, latency_enable_disable)
 
 /* *INDENT-OFF* */
 VLIB_PLUGIN_REGISTER () = {
-  .version = SPINBIT_PLUGIN_BUILD_VER,
-  .description = "SPINBIT middlebox VPP Plugin",
+  .version = LATENCY_PLUGIN_BUILD_VER,
+  .description = "LATENCY middlebox VPP Plugin",
 };
 /* *INDENT-ON* */
 
@@ -68,7 +68,7 @@ VLIB_PLUGIN_REGISTER () = {
  *
  * Action function shared between message handler and debug CLI.
  */
-int spinbit_enable_disable (spinbit_main_t * pm, u32 sw_if_index,
+int latency_enable_disable (latency_main_t * pm, u32 sw_if_index,
                                    int enable_disable)
 {
   vnet_sw_interface_t * sw;
@@ -85,17 +85,17 @@ int spinbit_enable_disable (spinbit_main_t * pm, u32 sw_if_index,
     return VNET_API_ERROR_INVALID_SW_IF_INDEX;
   
  
-  vnet_feature_enable_disable ("ip4-unicast", "spinbit",
+  vnet_feature_enable_disable ("ip4-unicast", "latency",
                                sw_if_index, enable_disable, 0, 0);
   return rv;
 }
 
 static clib_error_t *
-spinbit_enable_disable_command_fn (vlib_main_t * vm,
+latency_enable_disable_command_fn (vlib_main_t * vm,
                                    unformat_input_t * input,
                                    vlib_cli_command_t * cmd)
 {
-  spinbit_main_t * pm = &spinbit_main;
+  latency_main_t * pm = &latency_main;
   u32 sw_if_index = ~0;
   int enable_disable = 1;
     
@@ -114,7 +114,7 @@ spinbit_enable_disable_command_fn (vlib_main_t * vm,
   if (sw_if_index == ~0)
     return clib_error_return (0, "Please specify an interface...");
     
-  rv = spinbit_enable_disable (pm, sw_if_index, enable_disable);
+  rv = latency_enable_disable (pm, sw_if_index, enable_disable);
 
   switch(rv) {
   case 0:
@@ -130,7 +130,7 @@ spinbit_enable_disable_command_fn (vlib_main_t * vm,
     break;
 
   default:
-    return clib_error_return (0, "spinbit_enable_disable returned %d",
+    return clib_error_return (0, "latency_enable_disable returned %d",
                               rv);
   }
   return 0;
@@ -140,11 +140,11 @@ spinbit_enable_disable_command_fn (vlib_main_t * vm,
  * @brief format function (print each active flow)
  */
 u8 * format_sessions(u8 *s, va_list *args) {
-  spinbit_main_t * pm = &spinbit_main;
+  latency_main_t * pm = &latency_main;
 
   s = format(s, "Total flows: %u, total active flows: %u\n",
                   pm->total_flows, pm->active_flows);
-  spinbit_session_t * session;
+  latency_session_t * session;
   
   s = format(s, "=======================================================\n");
   
@@ -196,21 +196,21 @@ u8 * format_sessions(u8 *s, va_list *args) {
   return s;
 }
 
-static clib_error_t * spinbit_show_stats_fn(vlib_main_t * vm,
+static clib_error_t * latency_show_stats_fn(vlib_main_t * vm,
               unformat_input_t * input, vlib_cli_command_t * cmd) {
   vl_print(vm, "%U", format_sessions);
   return 0;
 }
 
-static clib_error_t * spinbit_show_version_fn(vlib_main_t * vm,
+static clib_error_t * latency_show_version_fn(vlib_main_t * vm,
               unformat_input_t * input, vlib_cli_command_t * cmd) {
   vl_print(vm, "V 0.1, support for TCP, QUIC and PLUS");
   return 0;
 }
 
-static clib_error_t * spinbit_add_port_fn(vlib_main_t * vm,
+static clib_error_t * latency_add_port_fn(vlib_main_t * vm,
               unformat_input_t * input, vlib_cli_command_t * cmd) {
-  spinbit_main_t * pm = &spinbit_main;
+  latency_main_t * pm = &latency_main;
   u32 quic_port = 0;
     
   if (!unformat (input, "%d", &quic_port)) {
@@ -225,20 +225,20 @@ static clib_error_t * spinbit_add_port_fn(vlib_main_t * vm,
   return 0;
 }
 
-static clib_error_t * spinbit_add_nat_fn(vlib_main_t * vm,
+static clib_error_t * latency_add_nat_fn(vlib_main_t * vm,
               unformat_input_t * input, vlib_cli_command_t * cmd) {
-  spinbit_main_t * pm = &spinbit_main;
+  latency_main_t * pm = &latency_main;
   u32 port, ip[4];
   ip4_address_t ip4;
 
   if (!unformat(input, "%d.%d.%d.%d %d", &ip[0], &ip[1], &ip[2], &ip[3], &port)) {
-    return clib_error_return (0, "Please enter a correct IP and port, e.g.: spinbit nat 1.2.3.4 555");
+    return clib_error_return (0, "Please enter a correct IP and port, e.g.: latency nat 1.2.3.4 555");
   }
   if (ip[0] >= 256 || ip[1] >= 256 || ip[2] >= 256 || ip[3] >= 256) {
-    return clib_error_return (0, "Please enter a correct IP and port, e.g.: spinbit nat 1.2.3.4 555");
+    return clib_error_return (0, "Please enter a correct IP and port, e.g.: latency nat 1.2.3.4 555");
   }
   if (port >= 65536) {
-    return clib_error_return (0, "Please enter a correct IP and port, e.g.: spinbit nat 1.2.3.4 555"); 
+    return clib_error_return (0, "Please enter a correct IP and port, e.g.: latency nat 1.2.3.4 555"); 
   }
 
   ip4.as_u8[3] = ip[0];
@@ -253,17 +253,17 @@ static clib_error_t * spinbit_add_nat_fn(vlib_main_t * vm,
   return 0;
 }
 
-static clib_error_t * spinbit_add_ip_fn(vlib_main_t * vm,
+static clib_error_t * latency_add_ip_fn(vlib_main_t * vm,
               unformat_input_t * input, vlib_cli_command_t * cmd) {
-  spinbit_main_t * pm = &spinbit_main;
+  latency_main_t * pm = &latency_main;
   u32 ip[4];
   ip4_address_t ip4;
 
   if (!unformat(input, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])) {
-    return clib_error_return (0, "Please enter a correct IP, e.g.: spinbit ip 10.0.0.1");
+    return clib_error_return (0, "Please enter a correct IP, e.g.: latency ip 10.0.0.1");
   }
   if (ip[0] >= 256 || ip[1] >= 256 || ip[2] >= 256 || ip[3] >= 256) {
-    return clib_error_return (0, "Please enter a correct IP, e.g.: spinbit ip 10.0.0.1");
+    return clib_error_return (0, "Please enter a correct IP, e.g.: latency ip 10.0.0.1");
   }
 
   ip4.as_u8[3] = ip[0];
@@ -277,81 +277,81 @@ static clib_error_t * spinbit_add_ip_fn(vlib_main_t * vm,
 }
 
 /**
- * @brief CLI command to enable/disable the spinbit plugin.
+ * @brief CLI command to enable/disable the latency plugin.
  */
 VLIB_CLI_COMMAND (sr_content_command, static) = {
-  .path = "spinbit interface",
+  .path = "latency interface",
   .short_help = 
-  "spinbit interface <interface-name> [disable]",
-  .function = spinbit_enable_disable_command_fn,
+  "latency interface <interface-name> [disable]",
+  .function = latency_enable_disable_command_fn,
 };
 
 /**
  * @brief CLI command to show all active flows
  */
 VLIB_CLI_COMMAND (sr_content_command_stats, static) = {
-  .path = "spinbit stats",
-  .short_help = "Show SPINBIT middlebox stats",
-  .function = spinbit_show_stats_fn,
+  .path = "latency stats",
+  .short_help = "Show LATENCY middlebox stats",
+  .function = latency_show_stats_fn,
 };
 
 /**
  * @brief CLI command to show version
  */
 VLIB_CLI_COMMAND (sr_content_command_version, static) = {
-  .path = "spinbit version",
-  .short_help = "SPINBIT plugin version information",
-  .function = spinbit_show_version_fn,
+  .path = "latency version",
+  .short_help = "LATENCY plugin version information",
+  .function = latency_show_version_fn,
 };
 
 /**
  * @brief CLI command to add QUIC dst port
  */
 VLIB_CLI_COMMAND (sr_content_command_port, static) = {
-  .path = "spinbit quic_port",
-  .short_help = "Add QUIC dst port: spinbit port <port>",
-  .function = spinbit_add_port_fn,
+  .path = "latency quic_port",
+  .short_help = "Add QUIC dst port: latency port <port>",
+  .function = latency_add_port_fn,
 };
 
 /**
  * @brief CLI command to add IP port "NAT" entry
  */
 VLIB_CLI_COMMAND (sr_content_command_nat, static) = {
-  .path = "spinbit nat",
-  .short_help = "Add middlebox NAT functionality: spinbit nat <IPv4 (dot)> <port>",
-  .function = spinbit_add_nat_fn,
+  .path = "latency nat",
+  .short_help = "Add middlebox NAT functionality: latency nat <IPv4 (dot)> <port>",
+  .function = latency_add_nat_fn,
 };
 
 /**
  * @brief CLI command to add MB IP
  */
 VLIB_CLI_COMMAND (sr_content_command_ip, static) = {
-  .path = "spinbit mb_ip",
+  .path = "latency mb_ip",
   .short_help = "Set IP of the VPP middlebox: <IPv4 (dot)>",
-  .function = spinbit_add_ip_fn,
+  .function = latency_add_ip_fn,
 };
 
 /**
- * @brief SPINBIT API message handler.
+ * @brief LATENCY API message handler.
  */
-static void vl_api_spinbit_enable_disable_t_handler
-         (vl_api_spinbit_enable_disable_t * mp) {
-  vl_api_spinbit_enable_disable_reply_t * rmp;
-  spinbit_main_t * pm = &spinbit_main;
+static void vl_api_latency_enable_disable_t_handler
+         (vl_api_latency_enable_disable_t * mp) {
+  vl_api_latency_enable_disable_reply_t * rmp;
+  latency_main_t * pm = &latency_main;
   int rv;
 
-  rv = spinbit_enable_disable (pm, ntohl(mp->sw_if_index), 
+  rv = latency_enable_disable (pm, ntohl(mp->sw_if_index), 
                                (int) (mp->enable_disable));
   
-  REPLY_MACRO(VL_API_SPINBIT_ENABLE_DISABLE_REPLY);
+  REPLY_MACRO(VL_API_LATENCY_ENABLE_DISABLE_REPLY);
 }
 
 /**
  * @brief Set up the API message handling tables.
  */
 static clib_error_t *
-spinbit_plugin_api_hookup (vlib_main_t *vm) {
-  spinbit_main_t * pm = &spinbit_main;
+latency_plugin_api_hookup (vlib_main_t *vm) {
+  latency_main_t * pm = &latency_main;
 #define _(N,n)                                                  \
     vl_msg_api_set_handlers((VL_API_##N + pm->msg_id_base),     \
                            #n,                                  \
@@ -360,38 +360,38 @@ spinbit_plugin_api_hookup (vlib_main_t *vm) {
                            vl_api_##n##_t_endian,               \
                            vl_api_##n##_t_print,                \
                            sizeof(vl_api_##n##_t), 1); 
-    foreach_spinbit_plugin_api_msg;
+    foreach_latency_plugin_api_msg;
 #undef _
 
   return 0;
 }
 
 #define vl_msg_name_crc_list
-#include <spinbit/spinbit_all_api_h.h>
+#include <latency/latency_all_api_h.h>
 #undef vl_msg_name_crc_list
 
 static void 
-setup_message_id_table (spinbit_main_t * pm, api_main_t *am) {
+setup_message_id_table (latency_main_t * pm, api_main_t *am) {
 #define _(id,n,crc) \
   vl_msg_api_add_msg_name_crc (am, #n "_" #crc, id + pm->msg_id_base);
-  foreach_vl_msg_name_crc_spinbit;
+  foreach_vl_msg_name_crc_latency;
 #undef _
 }
 
 /**
  *  @brief create the hash key
  */
-void make_key(spinbit_key_t * kv, u32 src_ip, u32 dst_ip,
+void make_key(latency_key_t * kv, u32 src_ip, u32 dst_ip,
               u16 src_p, u16 dst_p, u8 protocol) {
   if (src_ip == 0) {
-    src_ip = spinbit_main.mb_ip;
+    src_ip = latency_main.mb_ip;
   }
   kv->s_x_d_ip = src_ip ^ dst_ip;
   kv->s_x_d_port = src_p ^ dst_p;
   kv->protocol = protocol;
 }
 
-void make_plus_key(spinbit_key_t * kv, u32 src_ip, u32 dst_ip,
+void make_plus_key(latency_key_t * kv, u32 src_ip, u32 dst_ip,
                 u16 src_p, u16 dst_p, u8 protocol, u64 cat) {
   make_key(kv, src_ip, dst_ip, src_p, dst_p, protocol);
   kv->as_u64 = kv->as_u64 ^ cat;
@@ -400,29 +400,29 @@ void make_plus_key(spinbit_key_t * kv, u32 src_ip, u32 dst_ip,
 /**
  *  @brief get session pointer if corresponding key is known
  */
-spinbit_session_t * get_session_from_key(spinbit_key_t * kv_in) {
+latency_session_t * get_session_from_key(latency_key_t * kv_in) {
   BVT(clib_bihash_kv) kv, kv_return;
-  spinbit_main_t *pm = &spinbit_main;
+  latency_main_t *pm = &latency_main;
   BVT(clib_bihash) *bi_table;
-  bi_table = &pm->spinbit_table;
+  bi_table = &pm->latency_table;
   kv.key = kv_in->as_u64;
   int rv = BV(clib_bihash_search) (bi_table, &kv, &kv_return);
   if (rv != 0) {
     /* Key does not exist */
     return 0;
   } else {
-    return get_spinbit_session(kv_return.value);
+    return get_latency_session(kv_return.value);
   }
 }
 
 bool ip_nat_translation(ip4_header_t *ip0, u32 init_src_ip, u32 new_dst_ip) {
   if (ip0->src_address.as_u32 == init_src_ip) {
-    ip0->src_address.as_u32 = spinbit_main.mb_ip;
+    ip0->src_address.as_u32 = latency_main.mb_ip;
     ip0->dst_address.as_u32 = new_dst_ip;
     return true;
   }
   if (ip0->src_address.as_u32 == new_dst_ip) {
-    ip0->src_address.as_u32 = spinbit_main.mb_ip;
+    ip0->src_address.as_u32 = latency_main.mb_ip;
     ip0->dst_address.as_u32 = init_src_ip;
     return true;
   }
@@ -436,13 +436,13 @@ void update_quic_rtt_estimate(vlib_main_t * vm, quic_observer_t * session,
 
   bool spin = measurement & ONE_BIT_SPIN;
   u8 status_bits = (measurement & STATUS_MASK) >> STATUS_SHIFT;
-  bool basic = basic_spinbit_estimate(vm, &(session->basic_spin_observer),
+  bool basic = basic_latency_estimate(vm, &(session->basic_spin_observer),
             now, src_port, init_src_port, spin);
   
   // TODO: will fail if packet number is 0
   bool pn = false;
   if (packet_number) {
-    pn = pn_spinbit_estimate(vm, &(session->pn_spin_observer),
+    pn = pn_latency_estimate(vm, &(session->pn_spin_observer),
             now, src_port, init_src_port, spin, packet_number);
   }
   /* VEC estimator */
@@ -454,30 +454,30 @@ void update_quic_rtt_estimate(vlib_main_t * vm, quic_observer_t * session,
   /* Now it is time to print the rtt estimates to a file */
   /* If this is the first time we run, print CSV file header */
   if (pkt_count == 1){
-    spinbit_printf(0, "%s,%s,%s", "time", "pn", "host");
-    spinbit_printf(0, ",%s,%s", "basic_data", "basic_new");
-    spinbit_printf(0, ",%s,%s", "pn_data", "pn_new");
-    spinbit_printf(0, ",%s,%s", "status_data", "status_new");
-    spinbit_printf(0, ",%s,%s", "rel_heur_data", "rel_heur_new");
-    spinbit_printf(0, "\n");
+    latency_printf(0, "%s,%s,%s", "time", "pn", "host");
+    latency_printf(0, ",%s,%s", "basic_data", "basic_new");
+    latency_printf(0, ",%s,%s", "pn_data", "pn_new");
+    latency_printf(0, ",%s,%s", "status_data", "status_new");
+    latency_printf(0, ",%s,%s", "rel_heur_data", "rel_heur_new");
+    latency_printf(0, "\n");
   }
 
   /* If at least one update */
   if (basic || pn || status || dyna) {
     /* Now print the actual data */
     if (src_port == init_src_port) {
-      spinbit_printf(0, "%.*lf,%u,%s", TIME_PRECISION, now,
+      latency_printf(0, "%.*lf,%u,%s", TIME_PRECISION, now,
                      packet_number, "server");
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION, session->basic_spin_observer.rtt_server);
-      spinbit_printf(0, ",%d", session->basic_spin_observer.new_server);
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION, session->pn_spin_observer.rtt_server);
-      spinbit_printf(0, ",%d", session->pn_spin_observer.new_server);
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION, session->status_spin_observer.rtt_server);
-      spinbit_printf(0, ",%d", session->status_spin_observer.new_server);
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION,
+      latency_printf(0, ",%.*lf", RTT_PRECISION, session->basic_spin_observer.rtt_server);
+      latency_printf(0, ",%d", session->basic_spin_observer.new_server);
+      latency_printf(0, ",%.*lf", RTT_PRECISION, session->pn_spin_observer.rtt_server);
+      latency_printf(0, ",%d", session->pn_spin_observer.new_server);
+      latency_printf(0, ",%.*lf", RTT_PRECISION, session->status_spin_observer.rtt_server);
+      latency_printf(0, ",%d", session->status_spin_observer.new_server);
+      latency_printf(0, ",%.*lf", RTT_PRECISION,
              session->dyna_heur_spin_observer.rtt_server[session->dyna_heur_spin_observer.index_server]);
-      spinbit_printf(0, ",%d", session->dyna_heur_spin_observer.new_server);
-      spinbit_printf(1, "\n");
+      latency_printf(0, ",%d", session->dyna_heur_spin_observer.new_server);
+      latency_printf(1, "\n");
 
       session->basic_spin_observer.new_server = false;
       session->pn_spin_observer.new_server = false;
@@ -485,18 +485,18 @@ void update_quic_rtt_estimate(vlib_main_t * vm, quic_observer_t * session,
       session->dyna_heur_spin_observer.new_server = false;
 
     } else {
-      spinbit_printf(0, "%.*lf,%u,%s", TIME_PRECISION, now,
+      latency_printf(0, "%.*lf,%u,%s", TIME_PRECISION, now,
                      packet_number, "client");
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION, session->basic_spin_observer.rtt_client);
-      spinbit_printf(0, ",%d", session->basic_spin_observer.new_client);
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION, session->pn_spin_observer.rtt_client);
-      spinbit_printf(0, ",%d", session->pn_spin_observer.new_client);
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION, session->status_spin_observer.rtt_client);
-      spinbit_printf(0, ",%d", session->status_spin_observer.new_client);
-      spinbit_printf(0, ",%.*lf", RTT_PRECISION,
+      latency_printf(0, ",%.*lf", RTT_PRECISION, session->basic_spin_observer.rtt_client);
+      latency_printf(0, ",%d", session->basic_spin_observer.new_client);
+      latency_printf(0, ",%.*lf", RTT_PRECISION, session->pn_spin_observer.rtt_client);
+      latency_printf(0, ",%d", session->pn_spin_observer.new_client);
+      latency_printf(0, ",%.*lf", RTT_PRECISION, session->status_spin_observer.rtt_client);
+      latency_printf(0, ",%d", session->status_spin_observer.new_client);
+      latency_printf(0, ",%.*lf", RTT_PRECISION,
             session->dyna_heur_spin_observer.rtt_client[session->dyna_heur_spin_observer.index_client]);
-      spinbit_printf(0, ",%d", session->dyna_heur_spin_observer.new_client);
-      spinbit_printf(1, "\n");
+      latency_printf(0, ",%d", session->dyna_heur_spin_observer.new_client);
+      latency_printf(1, "\n");
 
       session->basic_spin_observer.new_client = false;
       session->pn_spin_observer.new_client = false;
@@ -507,9 +507,9 @@ void update_quic_rtt_estimate(vlib_main_t * vm, quic_observer_t * session,
 }
 
 /**
- * BASIC spinbit estimator
+ * BASIC latency estimator
  */
-bool basic_spinbit_estimate(vlib_main_t * vm, basic_spin_observer_t *observer,
+bool basic_latency_estimate(vlib_main_t * vm, basic_spin_observer_t *observer,
         f64 now, u16 src_port, u16 init_src_port, bool spin) {
   /* if this is a packet from the SERVER */
   if (src_port != init_src_port) {
@@ -537,7 +537,7 @@ bool basic_spinbit_estimate(vlib_main_t * vm, basic_spin_observer_t *observer,
  * (PN) observer
  */
 //TODO this does not handle PN wrap around yet
-bool pn_spinbit_estimate(vlib_main_t * vm, pn_spin_observer_t *observer,
+bool pn_latency_estimate(vlib_main_t * vm, pn_spin_observer_t *observer,
     f64 now, u16 src_port, u16 init_src_port, bool spin, u32 packet_number) {
   /* if this is a packet from the SERVER */
   if (src_port != init_src_port) {
@@ -962,12 +962,12 @@ bool psn_single_estimate(vlib_main_t * vm, plus_single_observer_t * session,
 /**
  * @brief update the state of the session with the given key
  */
-void update_state(spinbit_key_t * kv_in, uword new_state)
+void update_state(latency_key_t * kv_in, uword new_state)
 {
   BVT(clib_bihash_kv) kv;
-  spinbit_main_t *pm = &spinbit_main;
+  latency_main_t *pm = &latency_main;
   BVT(clib_bihash) *bi_table;
-  bi_table = &pm->spinbit_table;
+  bi_table = &pm->latency_table;
   kv.key = kv_in->as_u64;
   kv.value = new_state;
   BV(clib_bihash_add_del) (bi_table, &kv, 1 /* is_add */);
@@ -977,8 +977,8 @@ void update_state(spinbit_key_t * kv_in, uword new_state)
  * @brief create a new session for a new flow
  */
 u32 create_session(sup_protocols_t p_type) {
-  spinbit_session_t * session;
-  spinbit_main_t * pm = &spinbit_main;
+  latency_session_t * session;
+  latency_main_t * pm = &latency_main;
   pm->active_flows ++;
   pm->total_flows ++;
   pool_get (pm->session_pool, session);
@@ -1040,8 +1040,8 @@ u32 create_session(sup_protocols_t p_type) {
  */
 void clean_session(u32 index)
 {
-  spinbit_main_t * pm = &spinbit_main;
-  spinbit_session_t * session = get_spinbit_session(index);
+  latency_main_t * pm = &latency_main;
+  latency_session_t * session = get_latency_session(index);
   
   /* If main loop (in node.c) is executed sparsely, it can happen that
    * the timer wheel triggers multiple times for the same session.
@@ -1076,7 +1076,7 @@ void clean_session(u32 index)
 
   BVT(clib_bihash_kv) kv;
   BVT(clib_bihash) * bi_table;
-  bi_table = &pm->spinbit_table;
+  bi_table = &pm->latency_table;
   
   /* Clear hash and pool entry
    * First for the key in reverse direction */
@@ -1167,7 +1167,7 @@ tcp_options_parse_mod (tcp_header_t * th, u32 * tsval, u32 * tsecr) {
 }    
 
 /* Output to CLI / stdout, this is a modified copy of `vlib_cli_output` */
-void spinbit_printf (int flush, char *fmt, ...) {
+void latency_printf (int flush, char *fmt, ...) {
   va_list va;
   u8 *s;
 
@@ -1178,7 +1178,7 @@ void spinbit_printf (int flush, char *fmt, ...) {
   va_end (va);
 
   if (output_file_spin == NULL){
-    output_file_spin = fopen("/tmp/spinbit_quic_printf.out", "w");
+    output_file_spin = fopen("/tmp/latency_quic_printf.out", "w");
   }
   fprintf(output_file_spin, "%s", s);
 
@@ -1201,7 +1201,7 @@ void tcp_printf (int flush, char *fmt, ...) {
   va_end (va);
 
   if (output_file_tcp == NULL){
-    output_file_tcp = fopen("/tmp/spinbit_tcp_printf.out", "w");
+    output_file_tcp = fopen("/tmp/latency_tcp_printf.out", "w");
   }
   fprintf(output_file_tcp, "%s", s);
 
@@ -1224,7 +1224,7 @@ void plus_printf (int flush, char *fmt, ...) {
   va_end (va);
 
   if (output_file_plus == NULL){
-    output_file_plus = fopen("/tmp/spinbit_plus_printf.out", "w");
+    output_file_plus = fopen("/tmp/latency_plus_printf.out", "w");
   }
   fprintf(output_file_plus, "%s", s);
 
@@ -1236,25 +1236,25 @@ void plus_printf (int flush, char *fmt, ...) {
 }
 
 /**
- * @brief Initialize the spinbit plugin.
+ * @brief Initialize the latency plugin.
  */
-static clib_error_t * spinbit_init (vlib_main_t * vm)
+static clib_error_t * latency_init (vlib_main_t * vm)
 {
 
   // TODO: set mb_IP to good default value!!!
 
-  spinbit_main_t * pm = &spinbit_main;
+  latency_main_t * pm = &latency_main;
   clib_error_t * error = 0;
   u8 * name;
 
   pm->vnet_main =  vnet_get_main ();
-  name = format (0, "spinbit_%08x%c", api_version, 0);
+  name = format (0, "latency_%08x%c", api_version, 0);
   
   /* Ask for a correctly-sized block of API message decode slots */
   pm->msg_id_base = vl_msg_api_get_msg_ids 
       ((char *) name, VL_MSG_FIRST_AVAILABLE);
   
-  error = spinbit_plugin_api_hookup (vm);
+  error = latency_plugin_api_hookup (vm);
   
   /* Add our API messages to the global name_crc hash table */
   setup_message_id_table (pm, &api_main);
@@ -1268,7 +1268,7 @@ static clib_error_t * spinbit_init (vlib_main_t * vm)
   pm->hash_server_ports_to_ips = hash_create(0, sizeof(u32));
 
   /* Init bihash */
-  BV (clib_bihash_init) (&pm->spinbit_table, "spinbit", 2048, 512<<20);
+  BV (clib_bihash_init) (&pm->latency_table, "latency", 2048, 512<<20);
 
   /* Timer wheel has 2048 slots, so we predefine pool with
    * 2048 entries as well */ 
@@ -1288,15 +1288,15 @@ static clib_error_t * spinbit_init (vlib_main_t * vm)
   return error;
 }
 
-VLIB_INIT_FUNCTION (spinbit_init);
+VLIB_INIT_FUNCTION (latency_init);
 
 /**
- * @brief Hook the SPINBIT plugin into the VPP graph hierarchy.
+ * @brief Hook the LATENCY plugin into the VPP graph hierarchy.
  */
-VNET_FEATURE_INIT (spinbit, static) = 
+VNET_FEATURE_INIT (latency, static) = 
 {
   /* It runs in the device-input arc before the ip4-lookup node */  
   .arc_name = "ip4-unicast",
-  .node_name = "spinbit",
+  .node_name = "latency",
   .runs_before = VNET_FEATURES ("ip4-lookup"),
 };

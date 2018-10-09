@@ -18,13 +18,13 @@
 #include <vnet/session/stream_session.h>
 #include <vnet/pg/pg.h>
 #include <vppinfra/error.h>
-#include <spinbit/spinbit.h>
-#include <spinbit/plus_packet.h>
+#include <latency/latency.h>
+#include <latency/plus_packet.h>
 
-/* Register the spinbit node */
-vlib_node_registration_t spinbit_node;
+/* Register the latency node */
+vlib_node_registration_t latency_node;
 
-/* Used to display SPINBIT packets in the packet trace */
+/* Used to display LATENCY packets in the packet trace */
 typedef struct {
   u16 src_port;
   u16 dst_port;
@@ -32,20 +32,20 @@ typedef struct {
   u32 new_dst_ip;
   u16 type;
   u32 pkt_count;
-} spinbit_trace_t;
+} latency_trace_t;
 
 /* packet trace format function */
-static u8 * format_spinbit_trace (u8 * s, va_list * args) {
+static u8 * format_latency_trace (u8 * s, va_list * args) {
   /* Ignore two first arguments */
   CLIB_UNUSED (vlib_main_t * vm) = va_arg (*args, vlib_main_t *);
   CLIB_UNUSED (vlib_node_t * node) = va_arg (*args, vlib_node_t *);
   
-  spinbit_trace_t * t = va_arg (*args, spinbit_trace_t *);
+  latency_trace_t * t = va_arg (*args, latency_trace_t *);
 
   const char * typeNames[] = {"TCP", "QUIC", "PLUS"};
 
-  /* show SPINBIT packet */
-  s = format (s, "SPINBIT packet: type: %s\n", typeNames[t->type]);
+  /* show LATENCY packet */
+  s = format (s, "LATENCY packet: type: %s\n", typeNames[t->type]);
   s = format (s, "   src port: %u, dst port: %u\n", t->src_port, t->dst_port);
   s = format (s, "   (new) src ip: %u, (new) dst ip: %u\n", t->new_src_ip, t->new_dst_ip);
   s = format (s, "   pkt number in flow: %u\n", t->pkt_count);
@@ -54,20 +54,20 @@ static u8 * format_spinbit_trace (u8 * s, va_list * args) {
 }
 
 /* Current implementation does not drop any packets */
-#define foreach_spinbit_error \
+#define foreach_latency_error \
 _(TEMP, "Currently not used")
 
 typedef enum {
-#define _(sym,str) SPINBIT_ERROR_##sym,
-  foreach_spinbit_error
+#define _(sym,str) LATENCY_ERROR_##sym,
+  foreach_latency_error
 #undef _
-  SPINBIT_N_ERROR,
-} spinbit_error_t;
+  LATENCY_N_ERROR,
+} latency_error_t;
 
 
-static char * spinbit_error_strings[] = {
+static char * latency_error_strings[] = {
 #define _(sym,string) string,
-  foreach_spinbit_error
+  foreach_latency_error
 #undef _
 };
 
@@ -87,7 +87,7 @@ static char * spinbit_error_strings[] = {
 #define IS_LONG 0x80
 #define HAS_ID 0x40
 #define KEY_FLAG 0x20
-#define SPINBIT_TYPE 0x1F
+#define LATENCY_TYPE 0x1F
 #define SIZE_TYPE 1
 
 /* Only true for current pinq implementation (IETF draft 05)
@@ -102,12 +102,12 @@ static char * spinbit_error_strings[] = {
 
 #define SIZE_ID 8
 #define SIZE_VERSION 4
-#define SIZE_SPINBIT_SPIN 1
+#define SIZE_LATENCY_SPIN 1
 
 /* For reserved bits
  * spin in data_offset_and_reserved 00001110 */
-#define TCP_SPINBIT_MASK 0x0E
-#define TCP_SPINBIT_SHIFT 1
+#define TCP_LATENCY_MASK 0x0E
+#define TCP_LATENCY_SHIFT 1
 
 /* Timeout values (in 100ms) */
 #define TIMEOUT 300
@@ -120,18 +120,18 @@ static char * spinbit_error_strings[] = {
 /* We run before IP4_lookup node */
 typedef enum {
   IP4_LOOKUP,
-  SPINBIT_N_NEXT,
-} spinbit_next_t;
+  LATENCY_N_NEXT,
+} latency_next_t;
 
 /**
  * @brief Main loop function
  * */
 static uword
-spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
+latency_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
                  vlib_frame_t * frame) {
   
   u32 n_left_from, * from, * to_next;
-  spinbit_next_t next_index;
+  latency_next_t next_index;
 
   from = vlib_frame_vector_args (frame);
   n_left_from = frame->n_vectors;
@@ -171,7 +171,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
       bool is_udp = true;
 
       /* Contains TCP, QUIC or PLUS session */
-      spinbit_session_t * session = NULL;
+      latency_session_t * session = NULL;
 
       udp_header_t * udp0 = NULL;
       tcp_header_t * tcp0 = NULL;
@@ -202,7 +202,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               
             /* Get QUIC header */
             u64 connection_id;
-            u32 packet_number, CLIB_UNUSED(spinbit_version);
+            u32 packet_number, CLIB_UNUSED(latency_version);
             u8 *type = vlib_buffer_get_current(b0);
 
             /* LONG HEADER */
@@ -225,7 +225,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
 
               /* Get version */
               u32 *temp_version = vlib_buffer_get_current(b0);
-              spinbit_version = clib_net_to_host_u32(*temp_version);
+              latency_version = clib_net_to_host_u32(*temp_version);
               vlib_buffer_advance(b0, SIZE_VERSION);
               total_advance += SIZE_VERSION;
 
@@ -234,8 +234,8 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               vlib_buffer_advance (b0, SIZE_TYPE);
               total_advance += SIZE_TYPE;
 
-              /* No spinbit version in the short header */
-              spinbit_version = 0;
+              /* No latency version in the short header */
+              latency_version = 0;
 
               /* Get connection ID */
               connection_id = 0;
@@ -251,7 +251,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               }
 
               /* Get the packet number */
-              switch (*type & SPINBIT_TYPE) {
+              switch (*type & LATENCY_TYPE) {
                 case P_NUMBER_8:
                   if (PREDICT_TRUE(b0->current_length >= SIZE_NUMBER_8)) {
                     u8 *temp_8 = vlib_buffer_get_current(b0);
@@ -291,14 +291,14 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
             }
 
             u8 measurement;
-            if (PREDICT_TRUE(b0->current_length >= SIZE_SPINBIT_SPIN)) {
+            if (PREDICT_TRUE(b0->current_length >= SIZE_LATENCY_SPIN)) {
               u8 *temp_m = vlib_buffer_get_current(b0);
               measurement = *temp_m;
             } else {
               goto skip_packet;
             }
 
-            spinbit_key_t kv;
+            latency_key_t kv;
 
             make_key(&kv, ip0->src_address.as_u32, ip0->dst_address.as_u32, udp0->src_port,
                      udp0->dst_port, ip0->protocol);
@@ -318,7 +318,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
 
               /* Create new session */
               u32 index = create_session(P_QUIC);
-              session = get_spinbit_session(index);
+              session = get_latency_session(index);
 
               /* Save key for reverse lookup */
               session->key = kv.as_u64;
@@ -344,7 +344,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               start_timer(session, TIMEOUT);
             }
 
-            /* Do spinbit RTT estimation */
+            /* Do latency RTT estimation */
             update_quic_rtt_estimate(vm, session->quic, vlib_time_now (vm),
                           udp0->src_port, session->init_src_port, measurement,
                           packet_number, session->pkt_count);
@@ -356,7 +356,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               vlib_buffer_advance (b0, SIZE_PLUS);
               total_advance += SIZE_PLUS;
               if (PREDICT_TRUE((plus0->magic_and_flags & MAGIC_MASK) == MAGIC)) {
-                spinbit_key_t kv;
+                latency_key_t kv;
                 make_plus_key(&kv, ip0->src_address.as_u32, ip0->dst_address.as_u32,
                                 udp0->src_port, udp0->dst_port, ip0->protocol,
                                 plus0->CAT);
@@ -374,7 +374,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
 
                   /* Create new session */
                   u32 index = create_session(P_PLUS);
-                  session = get_spinbit_session(index);
+                  session = get_latency_session(index);
 
                   /* Save key for reverse lookup */
                   session->key = kv.as_u64;
@@ -453,10 +453,10 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
             }
 
             /* VEC data from reserved space */
-            u8 measurement = (tcp0->data_offset_and_reserved & TCP_SPINBIT_MASK)
-                    >> TCP_SPINBIT_SHIFT;
+            u8 measurement = (tcp0->data_offset_and_reserved & TCP_LATENCY_MASK)
+                    >> TCP_LATENCY_SHIFT;
 
-            spinbit_key_t kv;
+            latency_key_t kv;
             make_key(&kv, ip0->src_address.as_u32, ip0->dst_address.as_u32,
                      tcp0->src_port, tcp0->dst_port, ip0->protocol);
 
@@ -474,7 +474,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
 
               /* Create new session */
               u32 index = create_session(P_TCP);
-              session = get_spinbit_session(index);
+              session = get_latency_session(index);
 
               /* Save key for reverse lookup */
               session->key = kv.as_u64;
@@ -498,7 +498,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
               start_timer(session, TIMEOUT);
             }
 
-            /* Do timestamp and spinbit RTT estimation */
+            /* Do timestamp and latency RTT estimation */
             if (PREDICT_TRUE(make_measurement)) {
               update_tcp_rtt_estimate(vm, session->tcp, vlib_time_now (vm),
                         tcp0->src_port, session->init_src_port, measurement,
@@ -533,12 +533,12 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
         /* Currently only ACTIVE and ERROR state
          * The timer is just used to free memory if flow is no longer observed
          * PLUS states not implemented at the moment */
-        switch ((spinbit_state_t) session->state) {
-          case SPINBIT_STATE_ACTIVE:
+        switch ((latency_state_t) session->state) {
+          case LATENCY_STATE_ACTIVE:
             update_timer(session, TIMEOUT);
           break;
 
-          case SPINBIT_STATE_ERROR:
+          case LATENCY_STATE_ERROR:
           break;
 
           default:
@@ -549,7 +549,7 @@ spinbit_node_fn (vlib_main_t * vm, vlib_node_runtime_t * node,
         if (PREDICT_FALSE((node->flags & VLIB_NODE_FLAG_TRACE) 
             && (b0->flags & VLIB_BUFFER_IS_TRACED))) {
           
-          spinbit_trace_t *t = vlib_add_trace (vm, node, b0, sizeof (*t));
+          latency_trace_t *t = vlib_add_trace (vm, node, b0, sizeof (*t));
           if (is_udp) {
             t->src_port = clib_net_to_host_u16(udp0->src_port);
             t->dst_port = clib_net_to_host_u16(udp0->dst_port);
@@ -580,17 +580,17 @@ skip_packet:
 }
 
 
-VLIB_REGISTER_NODE (spinbit_node) = {
-  .function = spinbit_node_fn,
-  .name = "spinbit",
+VLIB_REGISTER_NODE (latency_node) = {
+  .function = latency_node_fn,
+  .name = "latency",
   .vector_size = sizeof (u32),
-  .format_trace = format_spinbit_trace,
+  .format_trace = format_latency_trace,
   .type = VLIB_NODE_TYPE_INTERNAL,
   
-  .n_errors = ARRAY_LEN(spinbit_error_strings),
-  .error_strings = spinbit_error_strings,
+  .n_errors = ARRAY_LEN(latency_error_strings),
+  .error_strings = latency_error_strings,
 
-  .n_next_nodes = SPINBIT_N_NEXT,
+  .n_next_nodes = LATENCY_N_NEXT,
 
   /* Next node is the ip4-lookup node */
   .next_nodes = {

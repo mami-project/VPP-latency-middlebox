@@ -11,21 +11,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-vppapitestplugins_LTLIBRARIES += spinbit_test_plugin.la
-vppplugins_LTLIBRARIES += spinbit_plugin.la
+vppapitestplugins_LTLIBRARIES += latency_test_plugin.la
+vppplugins_LTLIBRARIES += latency_plugin.la
 
-spinbit_plugin_la_SOURCES =		\
-	spinbit/spinbit.c				\
-	spinbit/node.c				\
-	spinbit/spinbit_plugin.api.h
+latency_plugin_la_SOURCES =		\
+	latency/latency.c				\
+	latency/node.c				\
+	latency/latency_plugin.api.h
 
-API_FILES += spinbit/spinbit.api
+API_FILES += latency/latency.api
 
 nobase_apiinclude_HEADERS +=			\
-  spinbit/spinbit_all_api_h.h				\
-  spinbit/spinbit_msg_enum.h				\
-  spinbit/spinbit.api.h
+  latency/latency_all_api_h.h				\
+  latency/latency_msg_enum.h				\
+  latency/latency.api.h
 
-spinbit_test_plugin_la_SOURCES = spinbit/spinbit_test.c spinbit/spinbit_plugin.api.h
+latency_test_plugin_la_SOURCES = latency/latency_test.c latency/latency_plugin.api.h
 
 # vi:syntax=automake
