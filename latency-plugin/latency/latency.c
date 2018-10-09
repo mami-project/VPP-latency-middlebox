@@ -309,7 +309,7 @@ VLIB_CLI_COMMAND (sr_content_command_version, static) = {
  */
 VLIB_CLI_COMMAND (sr_content_command_port, static) = {
   .path = "latency quic_port",
-  .short_help = "Add a port to identify QUIC traffic (can be repeated): latency port <port>",
+  .short_help = "Add a port to identify QUIC traffic (can be repeated): latency quic_port <port>",
   .function = latency_add_port_fn,
 };
 
