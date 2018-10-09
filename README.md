@@ -1,9 +1,25 @@
-# PLUS Middlebox using FD.io/VPP
+# VPP-based passive latency measurement middlebox
 
-## IETF hackathon code
-Checkout branch *quic_IETF_hackathon*
+This VPP plugin adds support for passive latency measurements in FD.io.
+The current implementation will estimate the RTT of:
 
-## Installation
+- QUIC flows using the latency spin signal (and other techniques) described
+    in our IMC'18 paper [Three Bits Suffice](https://nsg.ee.ethz.ch/fileadmin/user_upload/spinbit.pdf).
+    The following [fork of minq](https://github.com/pietdevaere/minq) adds the latency spin signal to QUIC traffic
+    such that it is detectable by the VPP plugin.
+- TCP flows using the latency spin signal and/or TCP timestamps.
+    We provide [patches](https://github.com/mami-project/three-bits-suffice/tree/master/tcp/kernel_patches)
+    to add latency spin signal support to the Linux kernel.
+- [PLUS](https://nsg.ee.ethz.ch/fileadmin/user_upload/CNSM_2017.pdf) flows using the PSN and PSE header fields.
+   For example [puic-go](https://github.com/mami-project/puic-go) can be used to add PLUS support to quic-go.
+
+## Installation 
+
+You can either use Vagrant to set up everything automatically
+or compile the plugin in an existing VPP installation.
+The plugin is tested with the stable FD.io version 17.10. 
+
+### Using Vagrant
 If not already available, install *Vagrant* and *VirtualBox* on your machine. 
 Go to the Vagrant directory and execute:
 ```
@@ -14,7 +30,7 @@ To start Vagrant and connect via ssh (root access without password).
 
 Part of the Vagrant setup adapted from the [vpp-mb](https://github.com/mami-project/vpp-mb) project.
 
-## Additional Vagrant commands
+### Additional Vagrant commands
 Rsync the vpp-plus directory once more (e.g. useful after git pull):
 ```
 cd vagrant
@@ -32,6 +48,18 @@ vagrant up
 vagrant ssh
 ```
 
+### Compiling the plugin
+To compile the plugin manually or adapt changes inside Vagrant, use:
+```
+cd latency-plugin
+sudo autoreconf -fis
+sudo ./configure
+sudo make
+sudo make install
+```
+
+Restart VPP, e.g. `sudo service vpp restart`
+
 ## Important VPP commands
 Start VPP: `sudo service vpp start`
 
@@ -41,23 +69,53 @@ You can either access the VPP shell with `sudo vppctl` and then interactively ex
 
 Use `sudo vppctl help` for a list of supported commands.
 
-### Important general commands
+### General commands
 List of interfaces: `sudo vppctl show interface` (you can also shorten the commands, e.g. `sudo vppctl sh int`)
 
 Show the VPP graph: `sudo vppctl show vlib graph`
 
-Add packet trace for (50 packets) `sudo vppctl trace add af-packet-input 50`
+Add a packet trace storing 50 packets `sudo vppctl trace add af-packet-input 50`
 
-Display the trace: `sudo vppctl show trace`
+Display the captured packets in the trace: `sudo vppctl show trace`
 
-Execute multiple commands from a file: `sudo vppctl exec <file>`
+Execute multiple VPP commands from a file (one command per line): `sudo vppctl exec <file>`
 
-### PLUS specific commands
-Add an interface to the PLUS plugin: `sudo vppctl plus <interface>`
+### Latency plugin specific commands
+To get an overview, use: `sudo vppctl latency help`
 
-Remove an interface: `sudo vppctl plus <interface> disable`
+Add an interface to the plugin: `sudo vppctl latency interface <interface>`
 
-List all active PLUS flows: `sudo vppctl plus stat`
+Remove an interface: `sudo vppctl latency interface <interface> disable`
+
+List all currently active flows with latency estimations: `sudo vppctl latency stat`
+
+Set the IPv4 address the plugin is listening to `sudo vppctl latency mb_ip <IPv4 (dot)>`
+
+Add a UDP port number that indicates QUIC traffic `sudo vppctl latency quic_port <port>`
+Can be repeated with different ports.
+
+Add NAT-like functionalities `sudo vppctl latency nat <IPv4 (dot)> <port>`. This is useful if you
+want to deploy the middlebox such that it can make on-path measurements taking traffic in
+both direction into account. Can be repeated with different pairs of ports and IPs.
+See next section for more information.
+
+### On-path measurements
+To be able to perform on-path measurements and observing traffic from the client
+to the server **and** the reverse traffic, we added NAT-like functionalities to the
+latency plugin.
+
+As an example, assume the VPP middlebox has the IP 1.2.3.4 (defined with `sudo vppctl latency mb_ip 1.2.3.4`).
+Now we would like to be able to forward traffic towards the server 5.6.7.8 through the middlebox.
+For that, we arbitrarily associate port 8888 with the dst IP 5.6.7.8 and add that to the plugin with
+(`sudo vppctl latency 5.6.7.8 8888`). Any client can now send traffic to 5.6.7.8 (over the middlebox)
+by sending traffic towards the IP of the middlebox (1.2.3.4) with dst port 8888.
+Whenever the plugin receives traffic with dst port 8888, it will:
+
+1. save the observed src IP and replace it with its own IP (1.2.3.4)
+1. replace the dst IP with the IP of the server 5.6.7.8
+1. send the traffic towards the new destination (src and dst ports are not changed)
+
+Once it receives traffic back from the server, it reverses the process and sends it to the original client.
 
 ## Connect Vagrant VM to host machine and run go plus-echo test
 This setup assumes you use VirtualBox as provider for the Vagrant VM!
@@ -116,14 +174,3 @@ Receiver: `sudo ip netns exec vpp2 python receiver.py`
 Sender: `sudo ip netns exec vpp1 python sender.py`
 
 Use `sudo vppctl plus stat` to see the generated flow or use the packet trace commands from above.
-
-## Ongoing work
-* Performance improvements (implementation of double loop)
-* Full multi-thread support
-* More test cases
-* Support for moving endpoints (e.g. src IP change)
-* Support for IP headers with options
-* IPv6 support
-
-## Known limitations
-* Currently only support for 2048 concurrent flows (should be more than enough for initial tests)
