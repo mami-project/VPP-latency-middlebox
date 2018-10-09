@@ -143,16 +143,18 @@ files for QUIC, TCP and PLUS traffic (`/tmp/latency_{plus,tcp,quic}_printf.out`)
 The data is saved as CSV files.
 
 ### QUIC latency measurements
-Header of the CSV file: `time,pn,host,basic_data,basic_new,pn_data,pn_new,status_data,status_new,rel_heur_data,rel_heur_new`
+Header of the CSV file: `time,pn,host,spin_data,spin_new,pn_spin_data,pn_spin_new,vec_data,vec_new,heur_data,heur_new`
 - `time`: time since start of VPP in seconds
 - `pn`: packet number of observed QUIC packet
 - `host`: server of client direction
-- `basic_data`: latency estimation taking only the latency spin bit into account
-- `basic_new`: does the `basic_data` contain a new estimation (0 or 1)
-- `pn_data`: latency estimation based on the spin bit only but rejecting reordered packets based on the packet number
-- `pn_new`: does the `pn_new` contain a new estimation (0 or 1)
-- `status_data`: latency estimation based on the full spin signal (spin bit and VEC)
-- `status_new`: does the `status_data` contain a new estimation (0 or 1)
-- `rel_heur_data`: latency estimation based on the spin bit only but rejecting RTT samples based on a heuristic
-- `rel_heur_new`: does the `rel_heur_data` contain a new estimation (0 or 1)
+- `spin_data`: latency estimation taking only the latency spin bit into account
+- `spin_new`: does the `spin_data` contain a new estimation (0 or 1)
+- `pn_spin_data`: latency estimation based on the spin bit only but rejecting reordered packets based on the packet number
+- `pn_spin_new`: does the `pn_spin_new` contain a new estimation (0 or 1)
+- `vec_data`: latency estimation based on the full spin signal (spin bit and VEC)
+- `vec_new`: does the `vec_data` contain a new estimation (0 or 1)
+- `heur_data`: latency estimation based on the spin bit only but rejecting RTT samples based on a heuristic
+- `heur_new`: does the `heur_data` contain a new estimation (0 or 1)
+
+More information can be found in our [IMC paper](https://nsg.ee.ethz.ch/fileadmin/user_upload/spinbit.pdf)
 

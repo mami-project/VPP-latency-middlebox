@@ -455,10 +455,10 @@ void update_quic_rtt_estimate(vlib_main_t * vm, quic_observer_t * session,
   /* If this is the first time we run, print CSV file header */
   if (pkt_count == 1){
     latency_printf(0, "%s,%s,%s", "time", "pn", "host");
-    latency_printf(0, ",%s,%s", "basic_data", "basic_new");
-    latency_printf(0, ",%s,%s", "pn_data", "pn_new");
-    latency_printf(0, ",%s,%s", "status_data", "status_new");
-    latency_printf(0, ",%s,%s", "rel_heur_data", "rel_heur_new");
+    latency_printf(0, ",%s,%s", "spin_data", "spin_new");
+    latency_printf(0, ",%s,%s", "pn_spin_data", "pn_spin_new");
+    latency_printf(0, ",%s,%s", "vec_data", "vec_new");
+    latency_printf(0, ",%s,%s", "heur_data", "heur_new");
     latency_printf(0, "\n");
   }
 
