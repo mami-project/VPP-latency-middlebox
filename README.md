@@ -87,7 +87,7 @@ Add an interface to the plugin: `sudo vppctl latency interface <interface>`
 
 Remove an interface: `sudo vppctl latency interface <interface> disable`
 
-List all currently active flows with latency estimations: `sudo vppctl latency stat`
+List all currently active flows with latency estimations: `sudo vppctl latency stats`
 
 Set the IPv4 address the plugin is listening to `sudo vppctl latency mb_ip <IPv4 (dot)>`
 
