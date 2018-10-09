@@ -282,7 +282,7 @@ static clib_error_t * latency_add_ip_fn(vlib_main_t * vm,
 VLIB_CLI_COMMAND (sr_content_command, static) = {
   .path = "latency interface",
   .short_help = 
-  "latency interface <interface-name> [disable]",
+  "Add an interface to the latency plugin: latency interface <interface-name> [disable]",
   .function = latency_enable_disable_command_fn,
 };
 
@@ -291,7 +291,7 @@ VLIB_CLI_COMMAND (sr_content_command, static) = {
  */
 VLIB_CLI_COMMAND (sr_content_command_stats, static) = {
   .path = "latency stats",
-  .short_help = "Show LATENCY middlebox stats",
+  .short_help = "Show latency information for all tracked flows: latency stats",
   .function = latency_show_stats_fn,
 };
 
@@ -300,7 +300,7 @@ VLIB_CLI_COMMAND (sr_content_command_stats, static) = {
  */
 VLIB_CLI_COMMAND (sr_content_command_version, static) = {
   .path = "latency version",
-  .short_help = "LATENCY plugin version information",
+  .short_help = "Show latency plugin version information: latency version",
   .function = latency_show_version_fn,
 };
 
@@ -309,7 +309,7 @@ VLIB_CLI_COMMAND (sr_content_command_version, static) = {
  */
 VLIB_CLI_COMMAND (sr_content_command_port, static) = {
   .path = "latency quic_port",
-  .short_help = "Add QUIC dst port: latency port <port>",
+  .short_help = "Add a port to identify QUIC traffic (can be repeated): latency port <port>",
   .function = latency_add_port_fn,
 };
 
@@ -318,7 +318,7 @@ VLIB_CLI_COMMAND (sr_content_command_port, static) = {
  */
 VLIB_CLI_COMMAND (sr_content_command_nat, static) = {
   .path = "latency nat",
-  .short_help = "Add middlebox NAT functionality: latency nat <IPv4 (dot)> <port>",
+  .short_help = "Add middlebox NAT functionality (can be repeated): latency nat <IPv4 (dot)> <port>",
   .function = latency_add_nat_fn,
 };
 
@@ -327,7 +327,7 @@ VLIB_CLI_COMMAND (sr_content_command_nat, static) = {
  */
 VLIB_CLI_COMMAND (sr_content_command_ip, static) = {
   .path = "latency mb_ip",
-  .short_help = "Set IP of the VPP middlebox: <IPv4 (dot)>",
+  .short_help = "Set IP of the VPP middlebox: latency mb_ip <IPv4 (dot)>",
   .function = latency_add_ip_fn,
 };
 
