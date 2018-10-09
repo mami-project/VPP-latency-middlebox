@@ -24,9 +24,9 @@ Vagrant.configure(2) do |config|
       vb.memory = "4096"
       vb.cpus = "2"
 
-      # rsync the vpp-mb directory if provision hasn't happened yet
+      # rsync the vpp-latency-mb directory if provision hasn't happened yet
       unless File.exist? (".vagrant/machines/default/virtualbox/action_provision")
-        config.vm.synced_folder "../", "/home/vagrant/plus-mb", type: "rsync",
+        config.vm.synced_folder "../", "/home/vagrant/vpp-latency-mb", type: "rsync",
          rsync__auto: false,
          rsync__exclude: [ "vagrant*" ]
       end
