@@ -140,13 +140,13 @@ with `sudo vppctl exec setup.conf`.
 
 The VPP plugin writes latency measurement results to the `/tmp` folder using different
 files for QUIC, TCP and PLUS traffic (`/tmp/latency_{plus,tcp,quic}_printf.out`).
-The data is saved as CSV files.
+The data is saved as CSV files. All latency estimations are in seconds.
 
 ### QUIC latency measurements
 Header of the CSV file: `time,pn,host,spin_data,spin_new,pn_spin_data,pn_spin_new,vec_data,vec_new,heur_data,heur_new`
 - `time`: time since start of VPP in seconds
 - `pn`: packet number of observed QUIC packet
-- `host`: server of client direction
+- `host`: server or client direction
 - `spin_data`: latency estimation taking only the latency spin bit into account
 - `spin_new`: does the `spin_data` contain a new estimation (0 or 1)
 - `pn_spin_data`: latency estimation based on the spin bit only but rejecting reordered packets based on the packet number
@@ -156,5 +156,19 @@ Header of the CSV file: `time,pn,host,spin_data,spin_new,pn_spin_data,pn_spin_ne
 - `heur_data`: latency estimation based on the spin bit only but rejecting RTT samples based on a heuristic
 - `heur_new`: does the `heur_data` contain a new estimation (0 or 1)
 
-More information can be found in our [IMC paper](https://nsg.ee.ethz.ch/fileadmin/user_upload/spinbit.pdf)
+More information can be found in our [IMC paper](https://nsg.ee.ethz.ch/fileadmin/user_upload/spinbit.pdf).
+
+### TCP latency measurements
+Header of the CSV file: `time,host,seq_num,vec_data,vec_new,single_ts_rtt_data,single_ts_rtt_new,all_ts_rtt_data,all_ts_rtt_new,vec_ne_zero_data,vec_ne_zero_new`
+- `time`: time since start of VPP in seconds
+- `host`: server or client direction
+- `seq_num`: sequence number of observed TCP packet
+- `vec_data`: latency estimation based on the full spin signal (spin bit and VEC)
+- `vec_new`: does the `vec_data` contain a new estimation (0 or 1)
+- `single_ts_rtt_data`: latency estimation based on one timestamp per RTT
+- `single_ts_rtt_new`: does the `single_ts_rtt_data` contain a new estimation (0 or 1)
+- `all_ts_rtt_data`: latency estimation based on every available timestamp value
+- `all_ts_rtt_new`: does the `all_ts_rtt_data` contain a new estimation (0 or 1)
+- `vec_ne_zero_data`: latency estimation based on the full spin signal (spin bit and VEC) taking every non-zero VEC value into account
+- `vec_ne_zero_new`: does the `vec_ne_zero_data` contain a new estimation (0 or 1)
 

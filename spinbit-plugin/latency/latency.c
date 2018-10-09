@@ -730,10 +730,10 @@ void update_tcp_rtt_estimate(vlib_main_t * vm, tcp_observer_t * session,
   
   if (pkt_count == 1){
     tcp_printf(0, "%s,%s,%s", "time", "host", "seq_num");
-    tcp_printf(0, ",%s,%s", "status_data", "status_new");
-    tcp_printf(0, ",%s,%s", "single_ts_rtt", "single_ts_rtt_new");
-    tcp_printf(0, ",%s,%s", "all_ts_rtt", "all_ts_rtt_new");
-    tcp_printf(0, ",%s,%s", "vec_ne_zero", "vec_ne_zero_new");
+    tcp_printf(0, ",%s,%s", "vec_data", "vec_new");
+    tcp_printf(0, ",%s,%s", "single_ts_rtt_data", "single_ts_rtt_new");
+    tcp_printf(0, ",%s,%s", "all_ts_rtt_data", "all_ts_rtt_new");
+    tcp_printf(0, ",%s,%s", "vec_ne_zero_data", "vec_ne_zero_new");
     tcp_printf(0, "\n");
   }
   
