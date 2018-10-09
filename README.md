@@ -54,7 +54,7 @@ To compile the plugin manually or adapt changes inside Vagrant, use:
 cd latency-plugin
 sudo autoreconf -fis
 sudo ./configure
-sudo make
+make
 sudo make install
 ```
 
