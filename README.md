@@ -99,7 +99,7 @@ want to deploy the middlebox such that it can make on-path measurements taking t
 both directions into account. Can be repeated with different pairs of ports and IPs.
 See next section for more information.
 
-# On-path latency measurements
+## On-path latency measurements
 To be able to perform on-path measurements and observing traffic from the client
 to the server **and** the reverse traffic, we added NAT-like functionalities to the
 latency plugin.
@@ -136,7 +136,7 @@ The last command declares traffic towards/from port 8888 as QUIC traffic.
 All these commands can be saved in a file (e.g. `setup.conf`) and executed
 with `sudo vppctl exec setup.conf`.
 
-## Connect Vagrant to host machine
+### Connect Vagrant to host machine
 
 If you use the Vagrant installation and want to connect the VM to the host machine,
 use "Host-only Networks" (assuming VirtualBox as provider for the Vagrant VM).
