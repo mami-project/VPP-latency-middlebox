@@ -54,7 +54,7 @@ To compile the plugin manually or adapt changes inside Vagrant, use:
 cd latency-plugin
 sudo autoreconf -fis
 sudo ./configure
-make
+sudo make
 sudo make install
 ```
 
@@ -74,7 +74,7 @@ List of interfaces: `sudo vppctl show interface` (you can also shorten the comma
 
 Show the VPP graph: `sudo vppctl show vlib graph`
 
-Add a packet trace storing 50 packets `sudo vppctl trace add af-packet-input 50`
+Add a packet trace storing 50 packets `sudo vppctl trace add dpdk-input 50`
 
 Display the captured packets in the trace: `sudo vppctl show trace`
 

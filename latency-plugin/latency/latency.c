@@ -1261,9 +1261,6 @@ static clib_error_t * latency_init (vlib_main_t * vm)
  
   /* Create hashes */
   pm->hash_quic_ports = hash_create(0, sizeof(u16));
-  // add ports with swapped bytes!
-  hash_set(pm->hash_quic_ports, 20753, 1); // 4433
-  // additional ports
 
   pm->hash_server_ports_to_ips = hash_create(0, sizeof(u32));
 
