@@ -26,8 +26,8 @@ As with the cloud init script, the [VNF descriptor](./vpp-cloud-init.yaml) needs
 
 The current configuration assumes the following interface assignments:
 
-| Interface | Functionality|
-| eth0      | Management   |
-| eth1      | East data if |
-| eth2      | West data if |
-
+Interface | Functionality
+----------|--------------------
+eth0      | Management
+eth1      | East data interface
+eth2      | West data interface
