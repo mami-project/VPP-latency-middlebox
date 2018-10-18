@@ -25,3 +25,9 @@ To deploy the VPP latency middlebox in NFV environments using [OSM Release THREE
 As with the cloud init script, the [VNF descriptor](./vpp-cloud-init.yaml) needs to be customised. Insert your `${HOME}/.ssh/idrsa.pub` file in the key `boot-data:key-pairs:ssh-rsa` in this file.
 
 The current configuration assumes the following interface assignments:
+
+| Interface | Functionality|
+| eth0      | Management   |
+| eth1      | East data if |
+| eth2      | West data if |
+
