@@ -1,0 +1,21 @@
+---
+schema_version:  2
+scenario:
+  name:          vpp-latency-mb
+  description:   Network scenario with the Latency MB connected to two external networks
+  vnfs:
+    linux1:                   # vnf/net name in the scenario
+      vnf_name:  linux-cloud-init       # VNF name as introduced in OPENMANO DB
+  networks:
+    mgmt:
+        external: false
+        interfaces:
+        - linux1: eth0
+    net-01-1:                   # provide a name for this net or connection
+        external:  true
+        interfaces:
+        - linux1:  eth1       # Node and its interface
+    net-01-2:                   # provide a name for this net or connection
+        external:  true
+        interfaces:
+        - linux1:  eth2       # Node and its interface
