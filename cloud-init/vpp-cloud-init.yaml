@@ -1,7 +1,7 @@
 ---
 vnf:
     name:        vpp-lantency-mb
-    description: Single-VM VNF descriptor for the VPP latencyt middlebox
+    description: Single-VM VNF descriptor for the VPP latency middlebox
     external-connections:
     -   name:              eth0
         type:              mgmt
